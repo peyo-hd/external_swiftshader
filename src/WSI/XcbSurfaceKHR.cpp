@@ -87,24 +87,6 @@ private:
 
 LibXcb libXcb;
 
-VkExtent2D getWindowSize(xcb_connection_t *connection, xcb_window_t window)
-{
-	VkExtent2D windowExtent = { 0, 0 };
-	xcb_generic_error_t *error = nullptr;
-	auto geom = libXcb->xcb_get_geometry_reply(connection, libXcb->xcb_get_geometry(connection, window), &error);
-	if(error)
-	{
-		free(error);
-	}
-	else
-	{
-		windowExtent.width = static_cast<uint32_t>(geom->width);
-		windowExtent.height = static_cast<uint32_t>(geom->height);
-	}
-	free(geom);
-	return windowExtent;
-}
-
 }  // anonymous namespace
 
 namespace vk {
@@ -128,7 +110,9 @@ void XcbSurfaceKHR::getSurfaceCapabilities(VkSurfaceCapabilitiesKHR *pSurfaceCap
 {
 	SurfaceKHR::getSurfaceCapabilities(pSurfaceCapabilities);
 
-	VkExtent2D extent = getWindowSize(connection, window);
+	auto geom = libXcb->xcb_get_geometry_reply(connection, libXcb->xcb_get_geometry(connection, window), nullptr);
+	VkExtent2D extent = { static_cast<uint32_t>(geom->width), static_cast<uint32_t>(geom->height) };
+	free(geom);
 
 	pSurfaceCapabilities->currentExtent = extent;
 	pSurfaceCapabilities->minImageExtent = extent;
@@ -160,7 +144,9 @@ VkResult XcbSurfaceKHR::present(PresentImage *image)
 	auto it = graphicsContexts.find(image);
 	if(it != graphicsContexts.end())
 	{
-		VkExtent2D windowExtent = getWindowSize(connection, window);
+		auto geom = libXcb->xcb_get_geometry_reply(connection, libXcb->xcb_get_geometry(connection, window), nullptr);
+		VkExtent2D windowExtent = { static_cast<uint32_t>(geom->width), static_cast<uint32_t>(geom->height) };
+		free(geom);
 		VkExtent3D extent = image->getImage()->getMipLevelExtent(VK_IMAGE_ASPECT_COLOR_BIT, 0);
 
 		if(windowExtent.width != extent.width || windowExtent.height != extent.height)

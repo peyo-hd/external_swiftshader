@@ -31,10 +31,6 @@ cc_library_static {
         "Source",
     ],
 
-    export_include_dirs: [
-        "Source",
-    ],
-
     static_libs: [
         "swiftshader_debug",
     ]

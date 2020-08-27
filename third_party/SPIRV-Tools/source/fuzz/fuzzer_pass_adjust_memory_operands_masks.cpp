@@ -21,11 +21,10 @@ namespace spvtools {
 namespace fuzz {
 
 FuzzerPassAdjustMemoryOperandsMasks::FuzzerPassAdjustMemoryOperandsMasks(
-    opt::IRContext* ir_context, TransformationContext* transformation_context,
+    opt::IRContext* ir_context, FactManager* fact_manager,
     FuzzerContext* fuzzer_context,
     protobufs::TransformationSequence* transformations)
-    : FuzzerPass(ir_context, transformation_context, fuzzer_context,
-                 transformations) {}
+    : FuzzerPass(ir_context, fact_manager, fuzzer_context, transformations) {}
 
 FuzzerPassAdjustMemoryOperandsMasks::~FuzzerPassAdjustMemoryOperandsMasks() =
     default;
@@ -98,7 +97,12 @@ void FuzzerPassAdjustMemoryOperandsMasks::Apply() {
 
           TransformationSetMemoryOperandsMask transformation(
               MakeInstructionDescriptor(block, inst_it), new_mask, mask_index);
-          ApplyTransformation(transformation);
+          assert(
+              transformation.IsApplicable(GetIRContext(), *GetFactManager()) &&
+              "Transformation should be applicable by construction.");
+          transformation.Apply(GetIRContext(), GetFactManager());
+          *GetTransformations()->add_transformation() =
+              transformation.ToMessage();
         }
       }
     }

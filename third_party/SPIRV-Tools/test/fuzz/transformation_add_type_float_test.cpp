@@ -42,23 +42,19 @@ TEST(TransformationAddTypeFloatTest, BasicTest) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Not applicable because id 1 is already in use.
-  ASSERT_FALSE(TransformationAddTypeFloat(1, 32).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddTypeFloat(1, 32).IsApplicable(context.get(),
+                                                              fact_manager));
 
   auto add_type_float_32 = TransformationAddTypeFloat(100, 32);
-  ASSERT_TRUE(
-      add_type_float_32.IsApplicable(context.get(), transformation_context));
-  add_type_float_32.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(add_type_float_32.IsApplicable(context.get(), fact_manager));
+  add_type_float_32.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
 
   // Not applicable as we already have this type now.
-  ASSERT_FALSE(TransformationAddTypeFloat(101, 32).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddTypeFloat(101, 32).IsApplicable(context.get(),
+                                                                fact_manager));
 
   std::string after_transformation = R"(
                OpCapability Shader

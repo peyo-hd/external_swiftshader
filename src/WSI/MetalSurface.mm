@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "MetalSurface.hpp"
+#include "MetalSurface.h"
 #include "Vulkan/VkDeviceMemory.hpp"
 #include "Vulkan/VkImage.hpp"
 
@@ -40,7 +40,6 @@ public:
         {
             layer = (CAMetalLayer*)[obj retain];
             layer.framebufferOnly = false;
-            layer.device = MTLCreateSystemDefaultDevice();
         }
         else
         {
@@ -69,7 +68,6 @@ public:
     {
         if(layer)
         {
-            [layer.device release];
             [layer release];
         }
         if(view)

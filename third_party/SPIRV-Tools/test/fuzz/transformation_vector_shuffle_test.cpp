@@ -86,259 +86,249 @@ TEST(TransformationVectorShuffle, BasicTest) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(10, {}), MakeDataDescriptor(12, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(11, {}), MakeDataDescriptor(12, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(10, {}),
+                                  MakeDataDescriptor(12, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(11, {}),
+                                  MakeDataDescriptor(12, {1}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(10, {}), MakeDataDescriptor(16, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(11, {}), MakeDataDescriptor(16, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(10, {}), MakeDataDescriptor(16, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(10, {}),
+                                  MakeDataDescriptor(16, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(11, {}),
+                                  MakeDataDescriptor(16, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(10, {}),
+                                  MakeDataDescriptor(16, {2}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(10, {}), MakeDataDescriptor(20, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(11, {}), MakeDataDescriptor(20, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(10, {}), MakeDataDescriptor(20, {2}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(11, {}), MakeDataDescriptor(20, {3}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(10, {}),
+                                  MakeDataDescriptor(20, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(11, {}),
+                                  MakeDataDescriptor(20, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(10, {}),
+                                  MakeDataDescriptor(20, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(11, {}),
+                                  MakeDataDescriptor(20, {3}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(25, {}), MakeDataDescriptor(27, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(26, {}), MakeDataDescriptor(27, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(25, {}),
+                                  MakeDataDescriptor(27, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(26, {}),
+                                  MakeDataDescriptor(27, {1}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(25, {}), MakeDataDescriptor(31, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(26, {}), MakeDataDescriptor(31, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(25, {}), MakeDataDescriptor(31, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(25, {}),
+                                  MakeDataDescriptor(31, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(26, {}),
+                                  MakeDataDescriptor(31, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(25, {}),
+                                  MakeDataDescriptor(31, {2}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(25, {}), MakeDataDescriptor(35, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(26, {}), MakeDataDescriptor(35, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(25, {}), MakeDataDescriptor(35, {2}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(26, {}), MakeDataDescriptor(35, {3}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(25, {}),
+                                  MakeDataDescriptor(35, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(26, {}),
+                                  MakeDataDescriptor(35, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(25, {}),
+                                  MakeDataDescriptor(35, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(26, {}),
+                                  MakeDataDescriptor(35, {3}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(40, {}), MakeDataDescriptor(42, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(41, {}), MakeDataDescriptor(42, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(40, {}),
+                                  MakeDataDescriptor(42, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(41, {}),
+                                  MakeDataDescriptor(42, {1}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(40, {}), MakeDataDescriptor(46, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(41, {}), MakeDataDescriptor(46, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(40, {}), MakeDataDescriptor(46, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(40, {}),
+                                  MakeDataDescriptor(46, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(41, {}),
+                                  MakeDataDescriptor(46, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(40, {}),
+                                  MakeDataDescriptor(46, {2}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(40, {}), MakeDataDescriptor(50, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(41, {}), MakeDataDescriptor(50, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(40, {}), MakeDataDescriptor(50, {2}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(41, {}), MakeDataDescriptor(50, {3}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(40, {}),
+                                  MakeDataDescriptor(50, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(41, {}),
+                                  MakeDataDescriptor(50, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(40, {}),
+                                  MakeDataDescriptor(50, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(41, {}),
+                                  MakeDataDescriptor(50, {3}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(55, {}), MakeDataDescriptor(61, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(56, {}), MakeDataDescriptor(61, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(55, {}), MakeDataDescriptor(61, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(55, {}),
+                                  MakeDataDescriptor(61, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(56, {}),
+                                  MakeDataDescriptor(61, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(55, {}),
+                                  MakeDataDescriptor(61, {2}), context.get());
 
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(55, {}), MakeDataDescriptor(65, {0}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(56, {}), MakeDataDescriptor(65, {1}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(55, {}), MakeDataDescriptor(65, {2}), context.get());
-  transformation_context.GetFactManager()->AddFactDataSynonym(
-      MakeDataDescriptor(56, {}), MakeDataDescriptor(65, {3}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(55, {}),
+                                  MakeDataDescriptor(65, {0}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(56, {}),
+                                  MakeDataDescriptor(65, {1}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(55, {}),
+                                  MakeDataDescriptor(65, {2}), context.get());
+  fact_manager.AddFactDataSynonym(MakeDataDescriptor(56, {}),
+                                  MakeDataDescriptor(65, {3}), context.get());
 
   // %103 does not dominate the return instruction.
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 103, 65,
                    {3, 5, 7})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Illegal to shuffle a bvec2 and a vec3
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 112, 61,
                    {0, 2, 4})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Illegal to shuffle an ivec2 and a uvec4
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 27, 50,
                    {1, 3, 5})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Vector 1 does not exist
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 300, 50,
                    {1, 3, 5})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Vector 2 does not exist
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 27, 300,
                    {1, 3, 5})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Index out of range
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 12, 112, {0, 20})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   // Too many indices
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 12, 112,
                    {0, 1, 0, 1, 0, 1, 0, 1})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Too few indices
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 12, 112, {})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   // Too few indices again
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 12, 112, {0})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   // Indices define unknown type: we do not have vec2
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 65, 65, {0, 1})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   // The instruction to insert before does not exist
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(100, SpvOpCompositeConstruct, 1),
                    201, 20, 12, {0xFFFFFFFF, 3, 5})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // The 'fresh' id is already in use
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(100, SpvOpReturn, 0), 12, 12, 112, {})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   protobufs::DataDescriptor temp_dd;
 
   TransformationVectorShuffle transformation1(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 200, 12, 112, {1, 0});
-  ASSERT_TRUE(
-      transformation1.IsApplicable(context.get(), transformation_context));
-  transformation1.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation1.IsApplicable(context.get(), fact_manager));
+  transformation1.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(200, {0});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(11, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(11, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(200, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(10, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(10, {}), temp_dd,
+                                        context.get()));
 
   TransformationVectorShuffle transformation2(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 201, 20, 12,
       {0xFFFFFFFF, 3, 5});
-  ASSERT_TRUE(
-      transformation2.IsApplicable(context.get(), transformation_context));
-  transformation2.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation2.IsApplicable(context.get(), fact_manager));
+  transformation2.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(201, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(11, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(11, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(201, {2});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(11, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(11, {}), temp_dd,
+                                        context.get()));
 
   TransformationVectorShuffle transformation3(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 202, 27, 35, {5, 4, 1});
-  ASSERT_TRUE(
-      transformation3.IsApplicable(context.get(), transformation_context));
-  transformation3.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation3.IsApplicable(context.get(), fact_manager));
+  transformation3.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(202, {0});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(26, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(26, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(202, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(25, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(25, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(202, {2});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(26, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(26, {}), temp_dd,
+                                        context.get()));
 
   TransformationVectorShuffle transformation4(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 203, 42, 46, {0, 1});
-  ASSERT_TRUE(
-      transformation4.IsApplicable(context.get(), transformation_context));
-  transformation4.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation4.IsApplicable(context.get(), fact_manager));
+  transformation4.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(203, {0});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(40, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(40, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(203, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(41, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(41, {}), temp_dd,
+                                        context.get()));
 
   TransformationVectorShuffle transformation5(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 204, 42, 46, {2, 3, 4});
-  ASSERT_TRUE(
-      transformation5.IsApplicable(context.get(), transformation_context));
-  transformation5.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation5.IsApplicable(context.get(), fact_manager));
+  transformation5.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(204, {0});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(40, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(40, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(204, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(41, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(41, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(204, {2});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(40, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(40, {}), temp_dd,
+                                        context.get()));
 
   TransformationVectorShuffle transformation6(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 205, 42, 42,
       {0, 1, 2, 3});
-  ASSERT_TRUE(
-      transformation6.IsApplicable(context.get(), transformation_context));
-  transformation6.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation6.IsApplicable(context.get(), fact_manager));
+  transformation6.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(205, {0});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(40, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(40, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(205, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(41, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(41, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(205, {2});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(40, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(40, {}), temp_dd,
+                                        context.get()));
   temp_dd = MakeDataDescriptor(205, {3});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(41, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(41, {}), temp_dd,
+                                        context.get()));
 
   // swizzle vec4 from vec4 and vec4 using some undefs
   TransformationVectorShuffle transformation7(
       MakeInstructionDescriptor(100, SpvOpReturn, 0), 206, 65, 65,
       {0xFFFFFFFF, 3, 6, 0xFFFFFFFF});
-  ASSERT_TRUE(
-      transformation7.IsApplicable(context.get(), transformation_context));
-  transformation7.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation7.IsApplicable(context.get(), fact_manager));
+  transformation7.Apply(context.get(), &fact_manager);
   temp_dd = MakeDataDescriptor(206, {1});
-  ASSERT_TRUE(transformation_context.GetFactManager()->IsSynonymous(
-      MakeDataDescriptor(56, {}), temp_dd));
+  ASSERT_TRUE(fact_manager.IsSynonymous(MakeDataDescriptor(56, {}), temp_dd,
+                                        context.get()));
 
   std::string after_transformation = R"(
                OpCapability Shader
@@ -489,55 +479,52 @@ TEST(TransformationVectorShuffleTest, IllegalInsertionPoints) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Cannot insert before the OpVariables of a function.
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(101, SpvOpVariable, 0), 200, 14, 14, {0, 1})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(101, SpvOpVariable, 1), 200, 14, 14, {1, 2})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(102, SpvOpVariable, 0), 200, 14, 14, {1, 2})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   // OK to insert right after the OpVariables.
   ASSERT_FALSE(
       TransformationVectorShuffle(
           MakeInstructionDescriptor(102, SpvOpBranch, 1), 200, 14, 14, {1, 1})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   // Cannot insert before the OpPhis of a block.
   ASSERT_FALSE(
       TransformationVectorShuffle(MakeInstructionDescriptor(60, SpvOpPhi, 0),
                                   200, 14, 14, {2, 0})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(
       TransformationVectorShuffle(MakeInstructionDescriptor(59, SpvOpPhi, 0),
                                   200, 14, 14, {3, 0})
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   // OK to insert after the OpPhis.
   ASSERT_TRUE(TransformationVectorShuffle(
                   MakeInstructionDescriptor(59, SpvOpAccessChain, 0), 200, 14,
                   14, {3, 4})
-                  .IsApplicable(context.get(), transformation_context));
+                  .IsApplicable(context.get(), fact_manager));
 
   // Cannot insert before OpLoopMerge
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(33, SpvOpBranchConditional, 0),
                    200, 14, 14, {3})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Cannot insert before OpSelectionMerge
   ASSERT_FALSE(TransformationVectorShuffle(
                    MakeInstructionDescriptor(21, SpvOpBranchConditional, 0),
                    200, 14, 14, {2})
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 }  // namespace

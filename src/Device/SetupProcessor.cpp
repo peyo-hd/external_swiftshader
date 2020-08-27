@@ -47,12 +47,20 @@ bool SetupProcessor::State::operator==(const State &state) const
 		return false;
 	}
 
-	return *static_cast<const States *>(this) == static_cast<const States &>(state);
+	static_assert(is_memcmparable<State>::value, "Cannot memcmp States");
+	return memcmp(static_cast<const States *>(this), static_cast<const States *>(&state), sizeof(States)) == 0;
 }
 
 SetupProcessor::SetupProcessor()
 {
+	routineCache = nullptr;
 	setRoutineCacheSize(1024);
+}
+
+SetupProcessor::~SetupProcessor()
+{
+	delete routineCache;
+	routineCache = nullptr;
 }
 
 SetupProcessor::State SetupProcessor::update(const sw::Context *context) const
@@ -93,7 +101,7 @@ SetupProcessor::State SetupProcessor::update(const sw::Context *context) const
 
 SetupProcessor::RoutineType SetupProcessor::routine(const State &state)
 {
-	auto routine = routineCache->lookup(state);
+	auto routine = routineCache->query(state);
 
 	if(!routine)
 	{
@@ -110,7 +118,8 @@ SetupProcessor::RoutineType SetupProcessor::routine(const State &state)
 
 void SetupProcessor::setRoutineCacheSize(int cacheSize)
 {
-	routineCache = std::make_unique<RoutineCacheType>(clamp(cacheSize, 1, 65536));
+	delete routineCache;
+	routineCache = new RoutineCacheType(clamp(cacheSize, 1, 65536));
 }
 
 }  // namespace sw

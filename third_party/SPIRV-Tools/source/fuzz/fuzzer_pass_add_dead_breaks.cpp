@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "source/fuzz/fuzzer_pass_add_dead_breaks.h"
-#include "source/fuzz/fuzzer_util.h"
+
 #include "source/fuzz/transformation_add_dead_break.h"
 #include "source/opt/ir_context.h"
 
@@ -21,11 +21,10 @@ namespace spvtools {
 namespace fuzz {
 
 FuzzerPassAddDeadBreaks::FuzzerPassAddDeadBreaks(
-    opt::IRContext* ir_context, TransformationContext* transformation_context,
+    opt::IRContext* ir_context, FactManager* fact_manager,
     FuzzerContext* fuzzer_context,
     protobufs::TransformationSequence* transformations)
-    : FuzzerPass(ir_context, transformation_context, fuzzer_context,
-                 transformations) {}
+    : FuzzerPass(ir_context, fact_manager, fuzzer_context, transformations) {}
 
 FuzzerPassAddDeadBreaks::~FuzzerPassAddDeadBreaks() = default;
 
@@ -35,16 +34,11 @@ void FuzzerPassAddDeadBreaks::Apply() {
   // We consider each function separately.
   for (auto& function : *GetIRContext()->module()) {
     // For a given function, we find all the merge blocks in that function.
-    std::vector<opt::BasicBlock*> merge_blocks;
+    std::vector<uint32_t> merge_block_ids;
     for (auto& block : function) {
       auto maybe_merge_id = block.MergeBlockIdIfAny();
       if (maybe_merge_id) {
-        auto merge_block =
-            fuzzerutil::MaybeFindBlock(GetIRContext(), maybe_merge_id);
-
-        assert(merge_block && "Merge block can't be null");
-
-        merge_blocks.push_back(merge_block);
+        merge_block_ids.push_back(maybe_merge_id);
       }
     }
     // We rather aggressively consider the possibility of adding a break from
@@ -52,40 +46,14 @@ void FuzzerPassAddDeadBreaks::Apply() {
     // inapplicable as they would be illegal.  That's OK - we later discard the
     // ones that turn out to be no good.
     for (auto& block : function) {
-      for (auto* merge_block : merge_blocks) {
-        // Populate this vector with ids that are available at the branch point
-        // of this basic block. We will use these ids to update OpPhi
-        // instructions later.
-        std::vector<uint32_t> phi_ids;
-
-        // Determine how we need to adjust OpPhi instructions' operands
-        // for this transformation to be valid.
-        //
-        // If |block| has a branch to |merge_block|, the latter must have all of
-        // its OpPhi instructions set up correctly - we don't need to adjust
-        // anything.
-        if (!block.IsSuccessor(merge_block)) {
-          merge_block->ForEachPhiInst([this, &phi_ids](opt::Instruction* phi) {
-            // Add an additional operand for OpPhi instruction.
-            //
-            // TODO(https://github.com/KhronosGroup/SPIRV-Tools/issues/3177):
-            // If we have a way to communicate to the fact manager
-            // that a specific id use is irrelevant and could be replaced with
-            // something else, we should add such a fact about the zero
-            // provided as an OpPhi operand
-            phi_ids.push_back(FindOrCreateZeroConstant(phi->type_id()));
-          });
-        }
-
-        // Make sure the module has a required boolean constant to be used in
-        // OpBranchConditional instruction.
-        auto break_condition = GetFuzzerContext()->ChooseEven();
-        FindOrCreateBoolConstant(break_condition);
-
+      for (auto merge_block_id : merge_block_ids) {
+        // TODO(https://github.com/KhronosGroup/SPIRV-Tools/issues/2856): right
+        //  now we completely ignore OpPhi instructions at merge blocks.  This
+        //  will lead to interesting opportunities being missed.
         auto candidate_transformation = TransformationAddDeadBreak(
-            block.id(), merge_block->id(), break_condition, std::move(phi_ids));
-        if (candidate_transformation.IsApplicable(
-                GetIRContext(), *GetTransformationContext())) {
+            block.id(), merge_block_id, GetFuzzerContext()->ChooseEven(), {});
+        if (candidate_transformation.IsApplicable(GetIRContext(),
+                                                  *GetFactManager())) {
           // Only consider a transformation as a candidate if it is applicable.
           candidate_transformations.push_back(
               std::move(candidate_transformation));
@@ -114,11 +82,10 @@ void FuzzerPassAddDeadBreaks::Apply() {
     candidate_transformations.erase(candidate_transformations.begin() + index);
     // Probabilistically decide whether to try to apply it vs. ignore it, in the
     // case that it is applicable.
-    if (transformation.IsApplicable(GetIRContext(),
-                                    *GetTransformationContext()) &&
+    if (transformation.IsApplicable(GetIRContext(), *GetFactManager()) &&
         GetFuzzerContext()->ChoosePercentage(
             GetFuzzerContext()->GetChanceOfAddingDeadBreak())) {
-      transformation.Apply(GetIRContext(), GetTransformationContext());
+      transformation.Apply(GetIRContext(), GetFactManager());
       *GetTransformations()->add_transformation() = transformation.ToMessage();
     }
   }

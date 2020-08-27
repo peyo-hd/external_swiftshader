@@ -103,46 +103,39 @@ TEST(TransformationSetSelectionControlTest, VariousScenarios) {
   const auto context = BuildModule(env, consumer, shader, kFuzzAssembleOption);
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // %44 is not a block
   ASSERT_FALSE(
       TransformationSetSelectionControl(44, SpvSelectionControlFlattenMask)
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   // %13 does not end with OpSelectionMerge
   ASSERT_FALSE(
       TransformationSetSelectionControl(13, SpvSelectionControlMaskNone)
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
   // %10 ends in OpLoopMerge, not OpSelectionMerge
   ASSERT_FALSE(
       TransformationSetSelectionControl(10, SpvSelectionControlMaskNone)
-          .IsApplicable(context.get(), transformation_context));
+          .IsApplicable(context.get(), fact_manager));
 
   TransformationSetSelectionControl transformation1(
       11, SpvSelectionControlDontFlattenMask);
-  ASSERT_TRUE(
-      transformation1.IsApplicable(context.get(), transformation_context));
-  transformation1.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation1.IsApplicable(context.get(), fact_manager));
+  transformation1.Apply(context.get(), &fact_manager);
 
   TransformationSetSelectionControl transformation2(
       23, SpvSelectionControlFlattenMask);
-  ASSERT_TRUE(
-      transformation2.IsApplicable(context.get(), transformation_context));
-  transformation2.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation2.IsApplicable(context.get(), fact_manager));
+  transformation2.Apply(context.get(), &fact_manager);
 
   TransformationSetSelectionControl transformation3(
       31, SpvSelectionControlMaskNone);
-  ASSERT_TRUE(
-      transformation3.IsApplicable(context.get(), transformation_context));
-  transformation3.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation3.IsApplicable(context.get(), fact_manager));
+  transformation3.Apply(context.get(), &fact_manager);
 
   TransformationSetSelectionControl transformation4(
       31, SpvSelectionControlFlattenMask);
-  ASSERT_TRUE(
-      transformation4.IsApplicable(context.get(), transformation_context));
-  transformation4.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation4.IsApplicable(context.get(), fact_manager));
+  transformation4.Apply(context.get(), &fact_manager);
 
   std::string after_transformation = R"(
                OpCapability Shader

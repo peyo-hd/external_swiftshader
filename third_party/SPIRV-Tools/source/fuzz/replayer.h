@@ -37,8 +37,7 @@ class Replayer {
   };
 
   // Constructs a replayer from the given target environment.
-  Replayer(spv_target_env env, bool validate_during_replay,
-           spv_validator_options validator_options);
+  explicit Replayer(spv_target_env env, bool validate_during_replay);
 
   // Disables copy/move constructor/assignment operations.
   Replayer(const Replayer&) = delete;

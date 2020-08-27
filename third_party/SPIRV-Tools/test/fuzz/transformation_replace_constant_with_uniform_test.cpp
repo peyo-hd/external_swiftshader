@@ -22,8 +22,7 @@ namespace fuzz {
 namespace {
 
 bool AddFactHelper(
-    TransformationContext* transformation_context, opt::IRContext* context,
-    uint32_t word,
+    FactManager* fact_manager, opt::IRContext* context, uint32_t word,
     const protobufs::UniformBufferElementDescriptor& descriptor) {
   protobufs::FactConstantUniform constant_uniform_fact;
   constant_uniform_fact.add_constant_word(word);
@@ -31,7 +30,7 @@ bool AddFactHelper(
       descriptor;
   protobufs::Fact fact;
   *fact.mutable_constant_uniform_fact() = constant_uniform_fact;
-  return transformation_context->GetFactManager()->AddFact(fact, context);
+  return fact_manager->AddFact(fact, context);
 }
 
 TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
@@ -105,10 +104,6 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_a =
       MakeUniformBufferElementDescriptor(0, 0, {0});
   protobufs::UniformBufferElementDescriptor blockname_b =
@@ -116,12 +111,9 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
   protobufs::UniformBufferElementDescriptor blockname_c =
       MakeUniformBufferElementDescriptor(0, 0, {2});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 1, blockname_a));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 2, blockname_b));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 3, blockname_c));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 1, blockname_a));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 2, blockname_b));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 3, blockname_c));
 
   // The constant ids are 9, 11 and 14, for 1, 2 and 3 respectively.
   protobufs::IdUseDescriptor use_of_9_in_store =
@@ -135,30 +127,30 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
   auto transformation_use_of_9_in_store =
       TransformationReplaceConstantWithUniform(use_of_9_in_store, blockname_a,
                                                100, 101);
-  ASSERT_TRUE(transformation_use_of_9_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_9_in_store.IsApplicable(context.get(),
+                                                            fact_manager));
   auto transformation_use_of_11_in_add =
       TransformationReplaceConstantWithUniform(use_of_11_in_add, blockname_b,
                                                102, 103);
-  ASSERT_TRUE(transformation_use_of_11_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_11_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
   auto transformation_use_of_14_in_add =
       TransformationReplaceConstantWithUniform(use_of_14_in_add, blockname_c,
                                                104, 105);
-  ASSERT_TRUE(transformation_use_of_14_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_14_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
 
   // The transformations are not applicable if we change which uniforms are
   // applied to which constants.
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                         blockname_b, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_11_in_add,
                                                         blockname_c, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_14_in_add,
                                                         blockname_a, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // The following transformations do not apply because the uniform descriptors
   // are not sensible.
@@ -168,10 +160,10 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
       MakeUniformBufferElementDescriptor(0, 0, {5});
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(
                    use_of_9_in_store, nonsense_uniform_descriptor1, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(
                    use_of_9_in_store, nonsense_uniform_descriptor2, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // The following transformation does not apply because the id descriptor is
   // not sensible.
@@ -179,19 +171,18 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
       MakeIdUseDescriptor(9, MakeInstructionDescriptor(15, SpvOpIAdd, 0), 0);
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(
                    nonsense_id_use_descriptor, blockname_a, 101, 102)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // The following transformations do not apply because the ids are not fresh.
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_11_in_add,
                                                         blockname_b, 15, 103)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_11_in_add,
                                                         blockname_b, 102, 15)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Apply the use of 9 in a store.
-  transformation_use_of_9_in_store.Apply(context.get(),
-                                         &transformation_context);
+  transformation_use_of_9_in_store.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
   std::string after_replacing_use_of_9_in_store = R"(
                OpCapability Shader
@@ -242,10 +233,10 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
   )";
   ASSERT_TRUE(IsEqual(env, after_replacing_use_of_9_in_store, context.get()));
 
-  ASSERT_TRUE(transformation_use_of_11_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_11_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
   // Apply the use of 11 in an add.
-  transformation_use_of_11_in_add.Apply(context.get(), &transformation_context);
+  transformation_use_of_11_in_add.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
   std::string after_replacing_use_of_11_in_add = R"(
                OpCapability Shader
@@ -298,10 +289,10 @@ TEST(TransformationReplaceConstantWithUniformTest, BasicReplacements) {
   )";
   ASSERT_TRUE(IsEqual(env, after_replacing_use_of_11_in_add, context.get()));
 
-  ASSERT_TRUE(transformation_use_of_14_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_14_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
   // Apply the use of 15 in an add.
-  transformation_use_of_14_in_add.Apply(context.get(), &transformation_context);
+  transformation_use_of_14_in_add.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
   std::string after_replacing_use_of_14_in_add = R"(
                OpCapability Shader
@@ -471,10 +462,6 @@ TEST(TransformationReplaceConstantWithUniformTest, NestedStruct) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_1 =
       MakeUniformBufferElementDescriptor(0, 0, {0});
   protobufs::UniformBufferElementDescriptor blockname_2 =
@@ -484,14 +471,10 @@ TEST(TransformationReplaceConstantWithUniformTest, NestedStruct) {
   protobufs::UniformBufferElementDescriptor blockname_4 =
       MakeUniformBufferElementDescriptor(0, 0, {1, 0, 1, 0});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 1, blockname_1));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 2, blockname_2));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 3, blockname_3));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 4, blockname_4));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 1, blockname_1));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 2, blockname_2));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 3, blockname_3));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 4, blockname_4));
 
   // The constant ids are 13, 15, 17 and 20, for 1, 2, 3 and 4 respectively.
   protobufs::IdUseDescriptor use_of_13_in_store =
@@ -507,78 +490,76 @@ TEST(TransformationReplaceConstantWithUniformTest, NestedStruct) {
   auto transformation_use_of_13_in_store =
       TransformationReplaceConstantWithUniform(use_of_13_in_store, blockname_1,
                                                100, 101);
-  ASSERT_TRUE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
   auto transformation_use_of_15_in_add =
       TransformationReplaceConstantWithUniform(use_of_15_in_add, blockname_2,
                                                102, 103);
-  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
   auto transformation_use_of_17_in_add =
       TransformationReplaceConstantWithUniform(use_of_17_in_add, blockname_3,
                                                104, 105);
-  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
   auto transformation_use_of_20_in_store =
       TransformationReplaceConstantWithUniform(use_of_20_in_store, blockname_4,
                                                106, 107);
-  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
 
-  ASSERT_TRUE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_TRUE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
+  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
+  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
+  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
 
-  transformation_use_of_13_in_store.Apply(context.get(),
-                                          &transformation_context);
+  transformation_use_of_13_in_store.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
-  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                              fact_manager));
+  ASSERT_TRUE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
+  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
+  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
 
-  transformation_use_of_15_in_add.Apply(context.get(), &transformation_context);
+  transformation_use_of_15_in_add.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
-  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                              fact_manager));
+  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                            fact_manager));
+  ASSERT_TRUE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                           fact_manager));
+  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
 
-  transformation_use_of_17_in_add.Apply(context.get(), &transformation_context);
+  transformation_use_of_17_in_add.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
-  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                              fact_manager));
+  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                            fact_manager));
+  ASSERT_FALSE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                            fact_manager));
+  ASSERT_TRUE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                             fact_manager));
 
-  transformation_use_of_20_in_store.Apply(context.get(),
-                                          &transformation_context);
+  transformation_use_of_20_in_store.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
-  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_17_in_add.IsApplicable(
-      context.get(), transformation_context));
-  ASSERT_FALSE(transformation_use_of_20_in_store.IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(transformation_use_of_13_in_store.IsApplicable(context.get(),
+                                                              fact_manager));
+  ASSERT_FALSE(transformation_use_of_15_in_add.IsApplicable(context.get(),
+                                                            fact_manager));
+  ASSERT_FALSE(transformation_use_of_17_in_add.IsApplicable(context.get(),
+                                                            fact_manager));
+  ASSERT_FALSE(transformation_use_of_20_in_store.IsApplicable(context.get(),
+                                                              fact_manager));
 
   std::string after = R"(
                OpCapability Shader
@@ -716,15 +697,10 @@ TEST(TransformationReplaceConstantWithUniformTest, NoUniformIntPointerPresent) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_0 =
       MakeUniformBufferElementDescriptor(0, 0, {0});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 0, blockname_0));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 0, blockname_0));
 
   // The constant id is 9 for 0.
   protobufs::IdUseDescriptor use_of_9_in_store =
@@ -734,7 +710,7 @@ TEST(TransformationReplaceConstantWithUniformTest, NoUniformIntPointerPresent) {
   // type is present:
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                         blockname_0, 100, 101)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationReplaceConstantWithUniformTest, NoConstantPresentForIndex) {
@@ -794,17 +770,12 @@ TEST(TransformationReplaceConstantWithUniformTest, NoConstantPresentForIndex) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_0 =
       MakeUniformBufferElementDescriptor(0, 0, {0});
   protobufs::UniformBufferElementDescriptor blockname_9 =
       MakeUniformBufferElementDescriptor(0, 0, {1});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 9, blockname_9));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 9, blockname_9));
 
   // The constant id is 9 for 9.
   protobufs::IdUseDescriptor use_of_9_in_store =
@@ -814,7 +785,7 @@ TEST(TransformationReplaceConstantWithUniformTest, NoConstantPresentForIndex) {
   // index 1 required to index into the uniform buffer:
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                         blockname_9, 100, 101)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationReplaceConstantWithUniformTest,
@@ -871,18 +842,14 @@ TEST(TransformationReplaceConstantWithUniformTest,
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_3 =
       MakeUniformBufferElementDescriptor(0, 0, {0});
 
   uint32_t float_data[1];
   float temp = 3.0;
   memcpy(&float_data[0], &temp, sizeof(float));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_data[0], blockname_3));
+  ASSERT_TRUE(
+      AddFactHelper(&fact_manager, context.get(), float_data[0], blockname_3));
 
   // The constant id is 9 for 3.0.
   protobufs::IdUseDescriptor use_of_9_in_store =
@@ -892,7 +859,7 @@ TEST(TransformationReplaceConstantWithUniformTest,
   // allow a constant index to be expressed:
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                         blockname_3, 100, 101)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationReplaceConstantWithUniformTest,
@@ -961,19 +928,13 @@ TEST(TransformationReplaceConstantWithUniformTest,
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_9 =
       MakeUniformBufferElementDescriptor(0, 0, {0});
   protobufs::UniformBufferElementDescriptor blockname_10 =
       MakeUniformBufferElementDescriptor(0, 0, {1});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 9, blockname_9));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 10, blockname_10));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 9, blockname_9));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 10, blockname_10));
 
   // The constant ids for 9 and 10 are 9 and 11 respectively
   protobufs::IdUseDescriptor use_of_9_in_store =
@@ -984,19 +945,19 @@ TEST(TransformationReplaceConstantWithUniformTest,
   // These are right:
   ASSERT_TRUE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                        blockname_9, 100, 101)
-                  .IsApplicable(context.get(), transformation_context));
+                  .IsApplicable(context.get(), fact_manager));
   ASSERT_TRUE(TransformationReplaceConstantWithUniform(use_of_11_in_store,
                                                        blockname_10, 102, 103)
-                  .IsApplicable(context.get(), transformation_context));
+                  .IsApplicable(context.get(), fact_manager));
 
   // These are wrong because the constants do not match the facts about
   // uniforms.
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_11_in_store,
                                                         blockname_9, 100, 101)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(use_of_9_in_store,
                                                         blockname_10, 102, 103)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationReplaceConstantWithUniformTest, ComplexReplacements) {
@@ -1180,9 +1141,6 @@ TEST(TransformationReplaceConstantWithUniformTest, ComplexReplacements) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   const float float_array_values[5] = {1.0, 1.5, 1.75, 1.875, 1.9375};
   uint32_t float_array_data[5];
@@ -1230,43 +1188,35 @@ TEST(TransformationReplaceConstantWithUniformTest, ComplexReplacements) {
   protobufs::UniformBufferElementDescriptor uniform_h_y =
       MakeUniformBufferElementDescriptor(0, 0, {2, 1});
 
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_array_data[0], uniform_f_a_0));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_array_data[1], uniform_f_a_1));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_array_data[2], uniform_f_a_2));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_array_data[3], uniform_f_a_3));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_array_data[4], uniform_f_a_4));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_array_data[0],
+                            uniform_f_a_0));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_array_data[1],
+                            uniform_f_a_1));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_array_data[2],
+                            uniform_f_a_2));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_array_data[3],
+                            uniform_f_a_3));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_array_data[4],
+                            uniform_f_a_4));
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 1, uniform_f_b_x));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 2, uniform_f_b_y));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 3, uniform_f_b_z));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 4, uniform_f_b_w));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 1, uniform_f_b_x));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 2, uniform_f_b_y));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 3, uniform_f_b_z));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 4, uniform_f_b_w));
 
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_vector_data[0], uniform_f_c_x));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_vector_data[1], uniform_f_c_y));
-  ASSERT_TRUE(AddFactHelper(&transformation_context, context.get(),
-                            float_vector_data[2], uniform_f_c_z));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_vector_data[0],
+                            uniform_f_c_x));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_vector_data[1],
+                            uniform_f_c_y));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), float_vector_data[2],
+                            uniform_f_c_z));
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 42, uniform_f_d));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 42, uniform_f_d));
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 22, uniform_g));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 22, uniform_g));
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 100, uniform_h_x));
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 200, uniform_h_y));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 100, uniform_h_x));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 200, uniform_h_y));
 
   std::vector<TransformationReplaceConstantWithUniform> transformations;
 
@@ -1325,9 +1275,8 @@ TEST(TransformationReplaceConstantWithUniformTest, ComplexReplacements) {
       uniform_g, 218, 219));
 
   for (auto& transformation : transformations) {
-    ASSERT_TRUE(
-        transformation.IsApplicable(context.get(), transformation_context));
-    transformation.Apply(context.get(), &transformation_context);
+    ASSERT_TRUE(transformation.IsApplicable(context.get(), fact_manager));
+    transformation.Apply(context.get(), &fact_manager);
     ASSERT_TRUE(IsValid(env, context.get()));
   }
 
@@ -1531,21 +1480,16 @@ TEST(TransformationReplaceConstantWithUniformTest,
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
-
   protobufs::UniformBufferElementDescriptor blockname_a =
       MakeUniformBufferElementDescriptor(0, 0, {0});
 
-  ASSERT_TRUE(
-      AddFactHelper(&transformation_context, context.get(), 0, blockname_a));
+  ASSERT_TRUE(AddFactHelper(&fact_manager, context.get(), 0, blockname_a));
 
   ASSERT_FALSE(TransformationReplaceConstantWithUniform(
                    MakeIdUseDescriptor(
                        50, MakeInstructionDescriptor(8, SpvOpVariable, 0), 1),
                    blockname_a, 100, 101)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 }  // namespace

@@ -215,6 +215,10 @@ global:
 	vkGetPhysicalDeviceSurfaceFormatsKHR;
 	vkGetPhysicalDeviceSurfacePresentModesKHR;
 
+	# Type-strings and type-infos required by sanitizers
+	_ZTS*;
+	_ZTI*;
+
 	# Android HAL module info object
 	HMI;
 

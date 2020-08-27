@@ -19,11 +19,8 @@
 #include "Type.hpp"
 #include "Value.hpp"
 
-#include "marl/mutex.h"
-#include "marl/tsa.h"
-
-#include <algorithm>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -83,10 +80,10 @@ private:
 	inline std::shared_ptr<Type> type() const override;
 	inline const void *get() const override;
 
-	mutable marl::mutex mutex;
-	std::vector<Variable> variables GUARDED_BY(mutex);
-	std::unordered_map<std::string, int> indices GUARDED_BY(mutex);
-	std::vector<std::shared_ptr<VariableContainer>> extends GUARDED_BY(mutex);
+	mutable std::mutex mutex;
+	std::vector<Variable> variables;
+	std::unordered_map<std::string, int> indices;
+	std::vector<std::shared_ptr<VariableContainer>> extends;
 };
 
 VariableContainer::VariableContainer(ID id)
@@ -103,7 +100,7 @@ void VariableContainer::foreach(size_t startIndex, size_t count, const F &cb) co
 template<typename F>
 void VariableContainer::foreach(ForeachIndex &index, const F &cb) const
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	for(size_t i = index.start; i < variables.size() && i < index.count; i++)
 	{
 		cb(variables[i]);
@@ -121,7 +118,7 @@ void VariableContainer::foreach(ForeachIndex &index, const F &cb) const
 template<typename F>
 bool VariableContainer::find(const std::string &name, const F &cb) const
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	for(auto const &var : variables)
 	{
 		if(var.name == name)
@@ -142,7 +139,7 @@ bool VariableContainer::find(const std::string &name, const F &cb) const
 
 void VariableContainer::put(const Variable &var)
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	auto it = indices.find(var.name);
 	if(it == indices.end())
 	{
@@ -163,7 +160,7 @@ void VariableContainer::put(const std::string &name,
 
 void VariableContainer::extend(const std::shared_ptr<VariableContainer> &base)
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	extends.emplace_back(base);
 }
 

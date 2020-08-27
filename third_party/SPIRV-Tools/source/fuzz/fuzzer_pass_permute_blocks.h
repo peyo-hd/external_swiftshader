@@ -24,8 +24,7 @@ namespace fuzz {
 // manner.
 class FuzzerPassPermuteBlocks : public FuzzerPass {
  public:
-  FuzzerPassPermuteBlocks(opt::IRContext* ir_context,
-                          TransformationContext* transformation_context,
+  FuzzerPassPermuteBlocks(opt::IRContext* ir_context, FactManager* fact_manager,
                           FuzzerContext* fuzzer_context,
                           protobufs::TransformationSequence* transformations);
 
