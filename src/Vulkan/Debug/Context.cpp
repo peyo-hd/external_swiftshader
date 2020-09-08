@@ -130,6 +130,7 @@ public:
 	Broadcaster broadcaster;
 
 	std::mutex mutex;
+	std::vector<EventListener *> eventListeners;
 	std::unordered_map<std::thread::id, std::shared_ptr<Thread>> threadsByStdId;
 	std::unordered_set<std::string> functionBreakpoints;
 	std::unordered_map<std::string, std::vector<int>> pendingBreakpoints;

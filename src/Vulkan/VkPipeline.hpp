@@ -42,7 +42,7 @@ class Device;
 class Pipeline
 {
 public:
-	Pipeline(PipelineLayout *layout, const Device *device);
+	Pipeline(PipelineLayout const *layout, const Device *device);
 	virtual ~Pipeline() = default;
 
 	operator VkPipeline()
@@ -55,20 +55,23 @@ public:
 		return vk::VkTtoT<Pipeline, VkPipeline>(object);
 	}
 
-	void destroy(const VkAllocationCallbacks *pAllocator);
+	void destroy(const VkAllocationCallbacks *pAllocator)
+	{
+		destroyPipeline(pAllocator);
+	}
 
 	virtual void destroyPipeline(const VkAllocationCallbacks *pAllocator) = 0;
 #ifndef NDEBUG
 	virtual VkPipelineBindPoint bindPoint() const = 0;
 #endif
 
-	PipelineLayout *getLayout() const
+	PipelineLayout const *getLayout() const
 	{
 		return layout;
 	}
 
 protected:
-	PipelineLayout *layout = nullptr;
+	PipelineLayout const *layout = nullptr;
 	Device const *const device;
 
 	const bool robustBufferAccess = true;
@@ -99,7 +102,7 @@ public:
 	const sw::Context &getContext() const;
 	const VkRect2D &getScissor() const;
 	const VkViewport &getViewport() const;
-	const sw::float4 &getBlendConstants() const;
+	const sw::Color<float> &getBlendConstants() const;
 	bool hasDynamicState(VkDynamicState dynamicState) const;
 	bool hasPrimitiveRestartEnable() const { return primitiveRestartEnable; }
 
@@ -114,7 +117,7 @@ private:
 	sw::Context context;
 	VkRect2D scissor;
 	VkViewport viewport;
-	sw::float4 blendConstants;
+	sw::Color<float> blendConstants;
 };
 
 class ComputePipeline : public Pipeline, public ObjectBase<ComputePipeline, VkPipeline>
@@ -138,7 +141,6 @@ public:
 
 	void run(uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ,
 	         uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ,
-	         vk::DescriptorSet::Array const &descriptorSetObjects,
 	         vk::DescriptorSet::Bindings const &descriptorSets,
 	         vk::DescriptorSet::DynamicOffsets const &descriptorDynamicOffsets,
 	         sw::PushConstantStorage const &pushConstants);

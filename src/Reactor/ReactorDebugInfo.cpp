@@ -20,7 +20,6 @@
 #	include "boost/stacktrace.hpp"
 
 #	include <algorithm>
-#	include <cctype>
 #	include <unordered_map>
 
 namespace rr {
@@ -103,7 +102,6 @@ Backtrace getCallerBacktrace(size_t limit /* = 0 */)
 
 void emitPrintLocation(const Backtrace &backtrace)
 {
-#	ifdef ENABLE_RR_EMIT_PRINT_LOCATION
 	static Location lastLocation;
 	if(backtrace.size() == 0)
 	{
@@ -115,7 +113,6 @@ void emitPrintLocation(const Backtrace &backtrace)
 		rr::Print("rr> {0} [{1}:{2}]\n", currLocation.function.name.c_str(), currLocation.function.file.c_str(), currLocation.line);
 		lastLocation = std::move(currLocation);
 	}
-#	endif
 }
 
 }  // namespace rr

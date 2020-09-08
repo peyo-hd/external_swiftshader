@@ -177,7 +177,7 @@ bool CodeSinkingPass::ReferencesMutableMemory(Instruction* inst) {
     return true;
   }
 
-  if (base_ptr->IsReadOnlyPointer()) {
+  if (base_ptr->IsReadOnlyVariable()) {
     return false;
   }
 

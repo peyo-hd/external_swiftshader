@@ -32,7 +32,6 @@ bool IsValidScope(uint32_t scope) {
     case SpvScopeSubgroup:
     case SpvScopeInvocation:
     case SpvScopeQueueFamilyKHR:
-    case SpvScopeShaderCallKHR:
       return true;
     case SpvScopeMax:
       break;
@@ -144,20 +143,6 @@ spv_result_t ValidateExecutionScope(ValidationState_t& _,
              << spvOpcodeString(opcode)
              << ": in WebGPU environment Execution Scope is limited to "
              << "Workgroup";
-    } else {
-      _.function(inst->function()->id())
-          ->RegisterExecutionModelLimitation(
-              [](SpvExecutionModel model, std::string* message) {
-                if (model != SpvExecutionModelGLCompute) {
-                  if (message) {
-                    *message =
-                        ": in WebGPU environment, Workgroup Execution Scope is "
-                        "limited to GLCompute execution model";
-                  }
-                  return false;
-                }
-                return true;
-              });
     }
   }
 
@@ -230,33 +215,11 @@ spv_result_t ValidateMemoryScope(ValidationState_t& _, const Instruction* inst,
     if ((_.context()->target_env == SPV_ENV_VULKAN_1_1 ||
          _.context()->target_env == SPV_ENV_VULKAN_1_2) &&
         value != SpvScopeDevice && value != SpvScopeWorkgroup &&
-        value != SpvScopeSubgroup && value != SpvScopeInvocation &&
-        value != SpvScopeShaderCallKHR) {
+        value != SpvScopeSubgroup && value != SpvScopeInvocation) {
       return _.diag(SPV_ERROR_INVALID_DATA, inst)
              << spvOpcodeString(opcode)
              << ": in Vulkan 1.1 and 1.2 environment Memory Scope is limited "
-             << "to Device, Workgroup, Invocation, and ShaderCall";
-    }
-
-    if (value == SpvScopeShaderCallKHR) {
-      _.function(inst->function()->id())
-          ->RegisterExecutionModelLimitation(
-              [](SpvExecutionModel model, std::string* message) {
-                if (model != SpvExecutionModelRayGenerationKHR &&
-                    model != SpvExecutionModelIntersectionKHR &&
-                    model != SpvExecutionModelAnyHitKHR &&
-                    model != SpvExecutionModelClosestHitKHR &&
-                    model != SpvExecutionModelMissKHR &&
-                    model != SpvExecutionModelCallableKHR) {
-                  if (message) {
-                    *message =
-                        "ShaderCallKHR Memory Scope requires a ray tracing "
-                        "execution model";
-                  }
-                  return false;
-                }
-                return true;
-              });
+             << "to Device, Workgroup and Invocation";
     }
   }
 
@@ -297,22 +260,6 @@ spv_result_t ValidateMemoryScope(ValidationState_t& _, const Instruction* inst,
                  << "Workgroup, Invocation, and QueueFamilyKHR";
         }
         break;
-    }
-
-    if (value == SpvScopeWorkgroup) {
-      _.function(inst->function()->id())
-          ->RegisterExecutionModelLimitation(
-              [](SpvExecutionModel model, std::string* message) {
-                if (model != SpvExecutionModelGLCompute) {
-                  if (message) {
-                    *message =
-                        ": in WebGPU environment, Workgroup Memory Scope is "
-                        "limited to GLCompute execution model";
-                  }
-                  return false;
-                }
-                return true;
-              });
     }
   }
 

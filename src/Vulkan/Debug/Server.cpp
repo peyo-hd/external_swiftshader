@@ -307,9 +307,13 @@ Server::Impl::Impl(const std::shared_ptr<Context> &context, int port)
 
 			// Workaround for
 			// https://github.com/microsoft/VSDebugAdapterHost/issues/11
-			if(clientIsVisualStudio && !threads.empty())
+			if(clientIsVisualStudio)
 			{
-				event.threadId = threads.front()->id.value();
+				for(auto thread : threads)
+				{
+					event.threadId = thread->id.value();
+					break;
+				}
 			}
 		}
 
@@ -532,7 +536,10 @@ dap::Source Server::Impl::source(File *file)
 	{
 		out.sourceReference = file->id.value();
 	}
-	out.path = file->path();
+	else
+	{
+		out.path = file->path();
+	}
 	return out;
 }
 

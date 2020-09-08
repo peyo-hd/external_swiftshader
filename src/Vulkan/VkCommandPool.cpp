@@ -14,7 +14,7 @@
 
 #include "VkCommandPool.hpp"
 #include "VkCommandBuffer.hpp"
-#include "VkDestroy.hpp"
+#include "VkDestroy.h"
 #include <algorithm>
 #include <new>
 

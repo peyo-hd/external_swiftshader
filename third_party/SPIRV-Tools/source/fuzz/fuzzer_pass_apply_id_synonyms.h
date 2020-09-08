@@ -27,7 +27,7 @@ namespace fuzz {
 class FuzzerPassApplyIdSynonyms : public FuzzerPass {
  public:
   FuzzerPassApplyIdSynonyms(opt::IRContext* ir_context,
-                            TransformationContext* transformation_context,
+                            FactManager* fact_manager,
                             FuzzerContext* fuzzer_context,
                             protobufs::TransformationSequence* transformations);
 

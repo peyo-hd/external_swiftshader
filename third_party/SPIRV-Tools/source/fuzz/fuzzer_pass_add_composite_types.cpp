@@ -22,11 +22,10 @@ namespace spvtools {
 namespace fuzz {
 
 FuzzerPassAddCompositeTypes::FuzzerPassAddCompositeTypes(
-    opt::IRContext* ir_context, TransformationContext* transformation_context,
+    opt::IRContext* ir_context, FactManager* fact_manager,
     FuzzerContext* fuzzer_context,
     protobufs::TransformationSequence* transformations)
-    : FuzzerPass(ir_context, transformation_context, fuzzer_context,
-                 transformations) {}
+    : FuzzerPass(ir_context, fact_manager, fuzzer_context, transformations) {}
 
 FuzzerPassAddCompositeTypes::~FuzzerPassAddCompositeTypes() = default;
 

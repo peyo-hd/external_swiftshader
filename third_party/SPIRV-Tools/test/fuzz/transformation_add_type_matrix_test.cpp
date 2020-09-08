@@ -47,20 +47,17 @@ TEST(TransformationAddTypeMatrixTest, BasicTest) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Id already in use
-  ASSERT_FALSE(TransformationAddTypeMatrix(4, 9, 2).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddTypeMatrix(4, 9, 2).IsApplicable(context.get(),
+                                                                 fact_manager));
   // %1 is not a type
   ASSERT_FALSE(TransformationAddTypeMatrix(100, 1, 2).IsApplicable(
-      context.get(), transformation_context));
+      context.get(), fact_manager));
 
   // %11 is not a floating-point vector
   ASSERT_FALSE(TransformationAddTypeMatrix(100, 11, 2)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   TransformationAddTypeMatrix transformations[] = {
       // %100 = OpTypeMatrix %8 2
@@ -91,9 +88,8 @@ TEST(TransformationAddTypeMatrixTest, BasicTest) {
       TransformationAddTypeMatrix(108, 10, 4)};
 
   for (auto& transformation : transformations) {
-    ASSERT_TRUE(
-        transformation.IsApplicable(context.get(), transformation_context));
-    transformation.Apply(context.get(), &transformation_context);
+    ASSERT_TRUE(transformation.IsApplicable(context.get(), fact_manager));
+    transformation.Apply(context.get(), &fact_manager);
   }
   ASSERT_TRUE(IsValid(env, context.get()));
 

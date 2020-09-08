@@ -14,8 +14,7 @@
 
 #include "File.hpp"
 
-#include "marl/mutex.h"
-
+#include <mutex>
 #include <unordered_set>
 
 namespace {
@@ -34,8 +33,8 @@ protected:
 	FileBase(ID id, std::string dir, std::string name, std::string source);
 
 private:
-	mutable marl::mutex breakpointMutex;
-	std::unordered_set<int> breakpoints GUARDED_BY(breakpointMutex);
+	mutable std::mutex breakpointMutex;
+	std::unordered_set<int> breakpoints;  // guarded by breakpointMutex
 };
 
 FileBase::FileBase(ID id, std::string dir, std::string name, std::string source)
@@ -44,19 +43,19 @@ FileBase::FileBase(ID id, std::string dir, std::string name, std::string source)
 
 void FileBase::clearBreakpoints()
 {
-	marl::lock lock(breakpointMutex);
+	std::unique_lock<std::mutex> lock(breakpointMutex);
 	breakpoints.clear();
 }
 
 void FileBase::addBreakpoint(int line)
 {
-	marl::lock lock(breakpointMutex);
+	std::unique_lock<std::mutex> lock(breakpointMutex);
 	breakpoints.emplace(line);
 }
 
 bool FileBase::hasBreakpoint(int line) const
 {
-	marl::lock lock(breakpointMutex);
+	std::unique_lock<std::mutex> lock(breakpointMutex);
 	return breakpoints.count(line) > 0;
 }
 

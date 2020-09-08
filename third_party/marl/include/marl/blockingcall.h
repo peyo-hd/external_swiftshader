@@ -15,7 +15,7 @@
 #ifndef marl_blocking_call_h
 #define marl_blocking_call_h
 
-#include "scheduler.h"
+#include "defer.h"
 #include "waitgroup.h"
 
 #include <thread>
@@ -32,17 +32,10 @@ class OnNewThread {
   inline static RETURN_TYPE call(F&& f, Args&&... args) {
     RETURN_TYPE result;
     WaitGroup wg(1);
-    auto scheduler = Scheduler::get();
     auto thread = std::thread(
-        [&, wg](Args&&... args) {
-          if (scheduler != nullptr) {
-            scheduler->bind();
-          }
+        [&](Args&&... args) {
+          defer(wg.done());
           result = f(std::forward<Args>(args)...);
-          if (scheduler != nullptr) {
-            Scheduler::unbind();
-          }
-          wg.done();
         },
         std::forward<Args>(args)...);
     wg.wait();
@@ -57,17 +50,10 @@ class OnNewThread<void> {
   template <typename F, typename... Args>
   inline static void call(F&& f, Args&&... args) {
     WaitGroup wg(1);
-    auto scheduler = Scheduler::get();
     auto thread = std::thread(
-        [&, wg](Args&&... args) {
-          if (scheduler != nullptr) {
-            scheduler->bind();
-          }
+        [&](Args&&... args) {
+          defer(wg.done());
           f(std::forward<Args>(args)...);
-          if (scheduler != nullptr) {
-            Scheduler::unbind();
-          }
-          wg.done();
         },
         std::forward<Args>(args)...);
     wg.wait();
@@ -85,10 +71,10 @@ class OnNewThread<void> {
 //  void runABlockingFunctionOnATask()
 //  {
 //      // Schedule a task that calls a blocking, non-yielding function.
-//      marl::schedule([=] {
+//      yarn::schedule([=] {
 //          // call_blocking_function() may block indefinitely.
 //          // Ensure this call does not block other tasks from running.
-//          auto result = marl::blocking_call(call_blocking_function);
+//          auto result = yarn::blocking_call(call_blocking_function);
 //          // call_blocking_function() has now returned.
 //          // result holds the return value of the blocking function call.
 //      });

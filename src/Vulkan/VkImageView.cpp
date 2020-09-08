@@ -14,9 +14,7 @@
 
 #include "VkImageView.hpp"
 #include "VkImage.hpp"
-#include "System/Math.hpp"
-
-#include <climits>
+#include <System/Math.hpp>
 
 namespace {
 
@@ -56,22 +54,7 @@ VkImageSubresourceRange ResolveRemainingLevelsLayers(VkImageSubresourceRange ran
 
 namespace vk {
 
-Identifier::Identifier(const Image *image, VkImageViewType type, VkFormat fmt, VkComponentMapping mapping)
-{
-	imageViewType = type;
-	format = Format::mapTo8bit(fmt);
-	r = mapping.r;
-	g = mapping.g;
-	b = mapping.b;
-	a = mapping.a;
-}
-
-Identifier::Identifier(VkFormat fmt)
-{
-	static_assert(vk::VK_IMAGE_VIEW_TYPE_END_RANGE == 6, "VkImageViewType does not allow using 7 to indicate buffer view");
-	imageViewType = 7;  // Still fits in 3-bit field
-	format = Format::mapTo8bit(fmt);
-}
+std::atomic<uint32_t> ImageView::nextID(1);
 
 ImageView::ImageView(const VkImageViewCreateInfo *pCreateInfo, void *mem, const vk::SamplerYcbcrConversion *ycbcrConversion)
     : image(vk::Cast(pCreateInfo->image))
@@ -80,7 +63,6 @@ ImageView::ImageView(const VkImageViewCreateInfo *pCreateInfo, void *mem, const 
     , components(ResolveComponentMapping(pCreateInfo->components, format))
     , subresourceRange(ResolveRemainingLevelsLayers(pCreateInfo->subresourceRange, image))
     , ycbcrConversion(ycbcrConversion)
-    , id(image, viewType, format.getAspectFormat(subresourceRange.aspectMask), components)
 {
 }
 
@@ -181,7 +163,7 @@ void ImageView::resolve(ImageView *resolveAttachment, int layer)
 		UNIMPLEMENTED("b/148242443: levelCount != 1");  // FIXME(b/148242443)
 	}
 
-	VkImageResolve region;
+	VkImageCopy region;
 	region.srcSubresource = {
 		subresourceRange.aspectMask,
 		subresourceRange.baseMipLevel,
@@ -199,7 +181,7 @@ void ImageView::resolve(ImageView *resolveAttachment, int layer)
 	region.extent = image->getMipLevelExtent(static_cast<VkImageAspectFlagBits>(subresourceRange.aspectMask),
 	                                         subresourceRange.baseMipLevel);
 
-	image->resolveTo(resolveAttachment->image, region);
+	image->copyTo(resolveAttachment->image, region);
 }
 
 void ImageView::resolve(ImageView *resolveAttachment)
@@ -209,7 +191,7 @@ void ImageView::resolve(ImageView *resolveAttachment)
 		UNIMPLEMENTED("b/148242443: levelCount != 1");  // FIXME(b/148242443)
 	}
 
-	VkImageResolve region;
+	VkImageCopy region;
 	region.srcSubresource = {
 		subresourceRange.aspectMask,
 		subresourceRange.baseMipLevel,
@@ -227,7 +209,7 @@ void ImageView::resolve(ImageView *resolveAttachment)
 	region.extent = image->getMipLevelExtent(static_cast<VkImageAspectFlagBits>(subresourceRange.aspectMask),
 	                                         subresourceRange.baseMipLevel);
 
-	image->resolveTo(resolveAttachment->image, region);
+	image->copyTo(resolveAttachment->image, region);
 }
 
 void ImageView::resolveWithLayerMask(ImageView *resolveAttachment, uint32_t layerMask)
@@ -290,13 +272,14 @@ void *ImageView::getOffsetPointer(const VkOffset3D &offset, VkImageAspectFlagBit
 {
 	ASSERT(mipLevel < subresourceRange.levelCount);
 
-	VkImageSubresource imageSubresource = {
+	VkImageSubresourceLayers imageSubresourceLayers = {
 		static_cast<VkImageAspectFlags>(aspect),
 		subresourceRange.baseMipLevel + mipLevel,
 		subresourceRange.baseArrayLayer + layer,
+		subresourceRange.layerCount
 	};
 
-	return getImage(usage)->getTexelPointer(offset, imageSubresource);
+	return getImage(usage)->getTexelPointer(offset, imageSubresourceLayers);
 }
 
 }  // namespace vk

@@ -18,7 +18,6 @@
 #include "Pipeline/VertexProgram.hpp"
 #include "System/Debug.hpp"
 #include "System/Math.hpp"
-#include "Vulkan/VkPipelineLayout.hpp"
 
 #include <cstring>
 
@@ -52,17 +51,26 @@ bool VertexProcessor::State::operator==(const State &state) const
 		return false;
 	}
 
-	return *static_cast<const States *>(this) == static_cast<const States &>(state);
+	static_assert(is_memcmparable<State>::value, "Cannot memcmp States");
+	return memcmp(static_cast<const States *>(this), static_cast<const States *>(&state), sizeof(States)) == 0;
 }
 
 VertexProcessor::VertexProcessor()
 {
+	routineCache = nullptr;
 	setRoutineCacheSize(1024);
+}
+
+VertexProcessor::~VertexProcessor()
+{
+	delete routineCache;
+	routineCache = nullptr;
 }
 
 void VertexProcessor::setRoutineCacheSize(int cacheSize)
 {
-	routineCache = std::make_unique<RoutineCacheType>(clamp(cacheSize, 1, 65536));
+	delete routineCache;
+	routineCache = new RoutineCacheType(clamp(cacheSize, 1, 65536));
 }
 
 const VertexProcessor::State VertexProcessor::update(const sw::Context *context)
@@ -70,7 +78,6 @@ const VertexProcessor::State VertexProcessor::update(const sw::Context *context)
 	State state;
 
 	state.shaderID = context->vertexShader->getSerialID();
-	state.pipelineLayoutIdentifier = context->pipelineLayout->identifier;
 	state.robustBufferAccess = context->robustBufferAccess;
 	state.isPoint = context->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
@@ -92,7 +99,7 @@ VertexProcessor::RoutineType VertexProcessor::routine(const State &state,
                                                       SpirvShader const *vertexShader,
                                                       const vk::DescriptorSet::Bindings &descriptorSets)
 {
-	auto routine = routineCache->lookup(state);
+	auto routine = routineCache->query(state);
 
 	if(!routine)  // Create one
 	{

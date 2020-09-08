@@ -47,20 +47,17 @@ TEST(TransformationAddGlobalUndefTest, BasicTest) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Id already in use
-  ASSERT_FALSE(TransformationAddGlobalUndef(4, 11).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddGlobalUndef(4, 11).IsApplicable(context.get(),
+                                                                fact_manager));
   // %1 is not a type
-  ASSERT_FALSE(TransformationAddGlobalUndef(100, 1).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddGlobalUndef(100, 1).IsApplicable(context.get(),
+                                                                 fact_manager));
 
   // %3 is a function type
-  ASSERT_FALSE(TransformationAddGlobalUndef(100, 3).IsApplicable(
-      context.get(), transformation_context));
+  ASSERT_FALSE(TransformationAddGlobalUndef(100, 3).IsApplicable(context.get(),
+                                                                 fact_manager));
 
   TransformationAddGlobalUndef transformations[] = {
       // %100 = OpUndef %6
@@ -82,9 +79,8 @@ TEST(TransformationAddGlobalUndefTest, BasicTest) {
       TransformationAddGlobalUndef(105, 11)};
 
   for (auto& transformation : transformations) {
-    ASSERT_TRUE(
-        transformation.IsApplicable(context.get(), transformation_context));
-    transformation.Apply(context.get(), &transformation_context);
+    ASSERT_TRUE(transformation.IsApplicable(context.get(), fact_manager));
+    transformation.Apply(context.get(), &fact_manager);
   }
   ASSERT_TRUE(IsValid(env, context.get()));
 
