@@ -201,18 +201,6 @@ global:
 	vkGetPhysicalDeviceQueueFamilyProperties2KHR;
 	vkGetPhysicalDeviceMemoryProperties2KHR;
 	vkGetPhysicalDeviceSparseImageFormatProperties2KHR;
-	# VK_EXT_debug_utils;
-	vkCmdBeginDebugUtilsLabelEXT;
-	vkCmdEndDebugUtilsLabelEXT;
-	vkCmdInsertDebugUtilsLabelEXT;
-	vkCreateDebugUtilsMessengerEXT;
-	vkDestroyDebugUtilsMessengerEXT;
-	vkQueueBeginDebugUtilsLabelEXT;
-	vkQueueEndDebugUtilsLabelEXT;
-	vkQueueInsertDebugUtilsLabelEXT;
-	vkSetDebugUtilsObjectNameEXT;
-	vkSetDebugUtilsObjectTagEXT;
-	vkSubmitDebugUtilsMessageEXT;
 	# VK_KHR_maintenance1;
 	vkTrimCommandPoolKHR;
 	# VK_KHR_maintenance3;
@@ -226,6 +214,10 @@ global:
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
 	vkGetPhysicalDeviceSurfaceFormatsKHR;
 	vkGetPhysicalDeviceSurfacePresentModesKHR;
+
+	# Type-strings and type-infos required by sanitizers
+	_ZTS*;
+	_ZTI*;
 
 	# Android HAL module info object
 	HMI;

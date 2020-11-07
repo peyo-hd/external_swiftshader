@@ -194,7 +194,7 @@ VkResult SwapchainKHR::getNextImage(uint64_t timeout, Semaphore *semaphore, Fenc
 		}
 	}
 
-	return (timeout > 0) ? VK_TIMEOUT : VK_NOT_READY;
+	return VK_NOT_READY;
 }
 
 VkResult SwapchainKHR::present(uint32_t index)

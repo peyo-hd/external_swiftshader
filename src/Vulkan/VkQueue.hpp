@@ -17,9 +17,10 @@
 
 #include "VkObject.hpp"
 #include "Device/Renderer.hpp"
-#include "System/Synchronization.hpp"
-
+#include <vulkan/vk_icd.h>
 #include <thread>
+
+#include "System/Synchronization.hpp"
 
 namespace marl {
 class Scheduler;
@@ -55,10 +56,6 @@ public:
 #ifndef __ANDROID__
 	VkResult present(const VkPresentInfoKHR *presentInfo);
 #endif
-
-	void beginDebugUtilsLabel(const VkDebugUtilsLabelEXT *pLabelInfo);
-	void endDebugUtilsLabel();
-	void insertDebugUtilsLabel(const VkDebugUtilsLabelEXT *pLabelInfo);
 
 private:
 	struct Task

@@ -250,19 +250,4 @@ VkResult Queue::present(const VkPresentInfoKHR *presentInfo)
 }
 #endif
 
-void Queue::beginDebugUtilsLabel(const VkDebugUtilsLabelEXT *pLabelInfo)
-{
-	// Optional debug label region
-}
-
-void Queue::endDebugUtilsLabel()
-{
-	// Close debug label region opened with beginDebugUtilsLabel()
-}
-
-void Queue::insertDebugUtilsLabel(const VkDebugUtilsLabelEXT *pLabelInfo)
-{
-	// Optional single debug label
-}
-
 }  // namespace vk

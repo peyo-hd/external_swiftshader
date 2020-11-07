@@ -26,7 +26,6 @@
 #include "source/fuzz/transformation_add_type_float.h"
 #include "source/fuzz/transformation_add_type_int.h"
 #include "source/fuzz/transformation_add_type_pointer.h"
-#include "source/fuzz/transformation_context.h"
 #include "source/fuzz/transformation_move_block_down.h"
 #include "source/fuzz/transformation_replace_boolean_constant_with_constant_binary.h"
 #include "source/fuzz/transformation_replace_constant_with_uniform.h"
@@ -38,22 +37,18 @@ namespace spvtools {
 namespace fuzz {
 
 struct Replayer::Impl {
-  Impl(spv_target_env env, bool validate, spv_validator_options options)
-      : target_env(env),
-        validate_during_replay(validate),
-        validator_options(options) {}
+  explicit Impl(spv_target_env env, bool validate)
+      : target_env(env), validate_during_replay(validate) {}
 
-  const spv_target_env target_env;    // Target environment.
-  MessageConsumer consumer;           // Message consumer.
+  const spv_target_env target_env;  // Target environment.
+  MessageConsumer consumer;         // Message consumer.
+
   const bool validate_during_replay;  // Controls whether the validator should
                                       // be run after every replay step.
-  spv_validator_options validator_options;  // Options to control
-                                            // validation
 };
 
-Replayer::Replayer(spv_target_env env, bool validate_during_replay,
-                   spv_validator_options validator_options)
-    : impl_(MakeUnique<Impl>(env, validate_during_replay, validator_options)) {}
+Replayer::Replayer(spv_target_env env, bool validate_during_replay)
+    : impl_(MakeUnique<Impl>(env, validate_during_replay)) {}
 
 Replayer::~Replayer() = default;
 
@@ -65,19 +60,11 @@ Replayer::ReplayerResultStatus Replayer::Run(
     const std::vector<uint32_t>& binary_in,
     const protobufs::FactSequence& initial_facts,
     const protobufs::TransformationSequence& transformation_sequence_in,
-    uint32_t num_transformations_to_apply, std::vector<uint32_t>* binary_out,
+    std::vector<uint32_t>* binary_out,
     protobufs::TransformationSequence* transformation_sequence_out) const {
   // Check compatibility between the library version being linked with and the
   // header files being used.
   GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-  if (num_transformations_to_apply >
-      static_cast<uint32_t>(transformation_sequence_in.transformation_size())) {
-    impl_->consumer(SPV_MSG_ERROR, nullptr, {},
-                    "The number of transformations to be replayed must not "
-                    "exceed the size of the transformation sequence.");
-    return Replayer::ReplayerResultStatus::kTooManyTransformationsRequested;
-  }
 
   spvtools::SpirvTools tools(impl_->target_env);
   if (!tools.IsValid()) {
@@ -87,8 +74,7 @@ Replayer::ReplayerResultStatus Replayer::Run(
   }
 
   // Initial binary should be valid.
-  if (!tools.Validate(&binary_in[0], binary_in.size(),
-                      impl_->validator_options)) {
+  if (!tools.Validate(&binary_in[0], binary_in.size())) {
     impl_->consumer(SPV_MSG_INFO, nullptr, {},
                     "Initial binary is invalid; stopping.");
     return Replayer::ReplayerResultStatus::kInitialBinaryInvalid;
@@ -108,25 +94,16 @@ Replayer::ReplayerResultStatus Replayer::Run(
 
   FactManager fact_manager;
   fact_manager.AddFacts(impl_->consumer, initial_facts, ir_context.get());
-  TransformationContext transformation_context(&fact_manager,
-                                               impl_->validator_options);
 
   // Consider the transformation proto messages in turn.
-  uint32_t counter = 0;
   for (auto& message : transformation_sequence_in.transformation()) {
-    if (counter >= num_transformations_to_apply) {
-      break;
-    }
-    counter++;
-
     auto transformation = Transformation::FromMessage(message);
 
     // Check whether the transformation can be applied.
-    if (transformation->IsApplicable(ir_context.get(),
-                                     transformation_context)) {
+    if (transformation->IsApplicable(ir_context.get(), fact_manager)) {
       // The transformation is applicable, so apply it, and copy it to the
       // sequence of transformations that were applied.
-      transformation->Apply(ir_context.get(), &transformation_context);
+      transformation->Apply(ir_context.get(), &fact_manager);
       *transformation_sequence_out->add_transformation() = message;
 
       if (impl_->validate_during_replay) {
@@ -134,8 +111,8 @@ Replayer::ReplayerResultStatus Replayer::Run(
         ir_context->module()->ToBinary(&binary_to_validate, false);
 
         // Check whether the latest transformation led to a valid binary.
-        if (!tools.Validate(&binary_to_validate[0], binary_to_validate.size(),
-                            impl_->validator_options)) {
+        if (!tools.Validate(&binary_to_validate[0],
+                            binary_to_validate.size())) {
           impl_->consumer(SPV_MSG_INFO, nullptr, {},
                           "Binary became invalid during replay (set a "
                           "breakpoint to inspect); stopping.");

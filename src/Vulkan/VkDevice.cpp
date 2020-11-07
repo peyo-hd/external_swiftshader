@@ -14,7 +14,7 @@
 
 #include "VkDevice.hpp"
 
-#include "VkConfig.hpp"
+#include "VkConfig.h"
 #include "VkDescriptorSetLayout.hpp"
 #include "VkFence.hpp"
 #include "VkQueue.hpp"
@@ -38,59 +38,25 @@ std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> now
 
 namespace vk {
 
-void Device::SamplingRoutineCache::updateSnapshot()
+std::shared_ptr<rr::Routine> Device::SamplingRoutineCache::query(const vk::Device::SamplingRoutineCache::Key &key) const
 {
-	marl::lock lock(mutex);
-
-	if(snapshotNeedsUpdate)
-	{
-		snapshot.clear();
-
-		for(auto it : cache)
-		{
-			snapshot[it.key()] = it.data();
-		}
-
-		snapshotNeedsUpdate = false;
-	}
+	return cache.query(key);
 }
 
-Device::SamplerIndexer::~SamplerIndexer()
+void Device::SamplingRoutineCache::add(const vk::Device::SamplingRoutineCache::Key &key, const std::shared_ptr<rr::Routine> &routine)
 {
-	ASSERT(map.empty());
+	ASSERT(routine);
+	cache.add(key, routine);
 }
 
-uint32_t Device::SamplerIndexer::index(const SamplerState &samplerState)
+rr::Routine *Device::SamplingRoutineCache::queryConst(const vk::Device::SamplingRoutineCache::Key &key) const
 {
-	marl::lock lock(mutex);
-
-	auto it = map.find(samplerState);
-
-	if(it != map.end())
-	{
-		it->second.count++;
-		return it->second.id;
-	}
-
-	nextID++;
-
-	map.emplace(samplerState, Identifier{ nextID, 1 });
-
-	return nextID;
+	return cache.queryConstCache(key).get();
 }
 
-void Device::SamplerIndexer::remove(const SamplerState &samplerState)
+void Device::SamplingRoutineCache::updateConstCache()
 {
-	marl::lock lock(mutex);
-
-	auto it = map.find(samplerState);
-	ASSERT(it != map.end());
-
-	auto count = --it->second.count;
-	if(count == 0)
-	{
-		map.erase(it);
-	}
+	cache.updateConstCache();
 }
 
 Device::Device(const VkDeviceCreateInfo *pCreateInfo, void *mem, PhysicalDevice *physicalDevice, const VkPhysicalDeviceFeatures *enabledFeatures, const std::shared_ptr<marl::Scheduler> &scheduler)
@@ -133,7 +99,6 @@ Device::Device(const VkDeviceCreateInfo *pCreateInfo, void *mem, PhysicalDevice 
 	// FIXME (b/119409619): use an allocator here so we can control all memory allocations
 	blitter.reset(new sw::Blitter());
 	samplingRoutineCache.reset(new SamplingRoutineCache());
-	samplerIndexer.reset(new SamplerIndexer());
 
 #ifdef ENABLE_VK_DEBUGGER
 	static auto port = getenv("VK_DEBUGGER_PORT");
@@ -298,81 +263,20 @@ Device::SamplingRoutineCache *Device::getSamplingRoutineCache() const
 	return samplingRoutineCache.get();
 }
 
-void Device::updateSamplingRoutineSnapshotCache()
+rr::Routine *Device::findInConstCache(const SamplingRoutineCache::Key &key) const
 {
-	samplingRoutineCache->updateSnapshot();
+	return samplingRoutineCache->queryConst(key);
 }
 
-uint32_t Device::indexSampler(const SamplerState &samplerState)
+void Device::updateSamplingRoutineConstCache()
 {
-	return samplerIndexer->index(samplerState);
+	std::unique_lock<std::mutex> lock(samplingRoutineCacheMutex);
+	samplingRoutineCache->updateConstCache();
 }
 
-void Device::removeSampler(const SamplerState &samplerState)
+std::mutex &Device::getSamplingRoutineCacheMutex()
 {
-	samplerIndexer->remove(samplerState);
-}
-
-VkResult Device::setDebugUtilsObjectName(const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
-{
-	// Optionally maps user-friendly name to an object
-	return VK_SUCCESS;
-}
-
-VkResult Device::setDebugUtilsObjectTag(const VkDebugUtilsObjectTagInfoEXT *pTagInfo)
-{
-	// Optionally attach arbitrary data to an object
-	return VK_SUCCESS;
-}
-
-void Device::registerImageView(ImageView *imageView)
-{
-	if(imageView != nullptr)
-	{
-		marl::lock lock(imageViewSetMutex);
-		imageViewSet.insert(imageView);
-	}
-}
-
-void Device::unregisterImageView(ImageView *imageView)
-{
-	if(imageView != nullptr)
-	{
-		marl::lock lock(imageViewSetMutex);
-		auto it = imageViewSet.find(imageView);
-		if(it != imageViewSet.end())
-		{
-			imageViewSet.erase(it);
-		}
-	}
-}
-
-void Device::prepareForSampling(ImageView *imageView)
-{
-	if(imageView != nullptr)
-	{
-		marl::lock lock(imageViewSetMutex);
-
-		auto it = imageViewSet.find(imageView);
-		if(it != imageViewSet.end())
-		{
-			imageView->prepareForSampling();
-		}
-	}
-}
-
-void Device::contentsChanged(ImageView *imageView)
-{
-	if(imageView != nullptr)
-	{
-		marl::lock lock(imageViewSetMutex);
-
-		auto it = imageViewSet.find(imageView);
-		if(it != imageViewSet.end())
-		{
-			imageView->contentsChanged();
-		}
-	}
+	return samplingRoutineCacheMutex;
 }
 
 }  // namespace vk

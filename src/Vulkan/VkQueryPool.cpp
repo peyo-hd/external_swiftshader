@@ -112,11 +112,6 @@ QueryPool::QueryPool(const VkQueryPoolCreateInfo *pCreateInfo, void *mem)
 
 void QueryPool::destroy(const VkAllocationCallbacks *pAllocator)
 {
-	for(uint32_t i = 0; i < count; i++)
-	{
-		pool[i].~Query();
-	}
-
 	vk::deallocate(pool, pAllocator);
 }
 
@@ -192,8 +187,7 @@ void QueryPool::begin(uint32_t query, VkQueryControlFlags flags)
 {
 	ASSERT(query < count);
 
-	// Only accept flags with valid bits set.
-	if(flags & ~(VK_QUERY_CONTROL_PRECISE_BIT))
+	if(flags != 0)
 	{
 		UNSUPPORTED("vkCmdBeginQuery::flags %d", int(flags));
 	}

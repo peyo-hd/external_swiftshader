@@ -997,8 +997,7 @@ bool LoopUtils::CanPerformUnroll() {
     const BasicBlock* block = context_->cfg()->block(label_id);
     if (block->ctail()->opcode() == SpvOp::SpvOpKill ||
         block->ctail()->opcode() == SpvOp::SpvOpReturn ||
-        block->ctail()->opcode() == SpvOp::SpvOpReturnValue ||
-        block->ctail()->opcode() == SpvOp::SpvOpTerminateInvocation) {
+        block->ctail()->opcode() == SpvOp::SpvOpReturnValue) {
       return false;
     }
   }

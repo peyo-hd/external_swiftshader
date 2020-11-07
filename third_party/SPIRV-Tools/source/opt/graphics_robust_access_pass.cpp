@@ -802,11 +802,8 @@ spv_result_t GraphicsRobustAccessPass::ClampCoordinateForImageTexelPointer(
     opt::Instruction* image_texel_pointer) {
   // TODO(dneto): Write tests for this code.
   // TODO(dneto): Use signed-clamp
-  (void)(image_texel_pointer);
   return SPV_SUCCESS;
 
-  // Do not compile this code until it is ready to be used.
-#if 0
   // Example:
   //   %texel_ptr = OpImageTexelPointer %texel_ptr_type %image_ptr %coord
   //   %sample
@@ -1038,7 +1035,6 @@ spv_result_t GraphicsRobustAccessPass::ClampCoordinateForImageTexelPointer(
   def_use_mgr->AnalyzeInstUse(image_texel_pointer);
 
   return SPV_SUCCESS;
-#endif
 }
 
 opt::Instruction* GraphicsRobustAccessPass::InsertInst(

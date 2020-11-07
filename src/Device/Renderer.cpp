@@ -26,12 +26,10 @@
 #include "System/Math.hpp"
 #include "System/Memory.hpp"
 #include "System/Timer.hpp"
-#include "Vulkan/VkConfig.hpp"
-#include "Vulkan/VkDescriptorSet.hpp"
+#include "Vulkan/VkConfig.h"
 #include "Vulkan/VkDevice.hpp"
 #include "Vulkan/VkFence.hpp"
 #include "Vulkan/VkImageView.hpp"
-#include "Vulkan/VkPipelineLayout.hpp"
 #include "Vulkan/VkQueryPool.hpp"
 
 #include "marl/containers.h"
@@ -158,9 +156,9 @@ DrawCall::~DrawCall()
 Renderer::Renderer(vk::Device *device)
     : device(device)
 {
-	vertexProcessor.setRoutineCacheSize(1024);
-	pixelProcessor.setRoutineCacheSize(1024);
-	setupProcessor.setRoutineCacheSize(1024);
+	VertexProcessor::setRoutineCacheSize(1024);
+	PixelProcessor::setRoutineCacheSize(1024);
+	SetupProcessor::setRoutineCacheSize(1024);
 }
 
 Renderer::~Renderer()
@@ -189,6 +187,24 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 	auto id = nextDrawID++;
 	MARL_SCOPED_EVENT("draw %d", id);
 
+#ifndef NDEBUG
+	{
+		unsigned int minPrimitives = 1;
+		unsigned int maxPrimitives = 1 << 21;
+		if(count < minPrimitives || count > maxPrimitives)
+		{
+			return;
+		}
+	}
+#endif
+
+	int ms = context->sampleCount;
+
+	if(!context->multiSampleMask)
+	{
+		return;
+	}
+
 	marl::Pool<sw::DrawCall>::Loan draw;
 	{
 		MARL_SCOPED_EVENT("drawCallPool.borrow()");
@@ -199,20 +215,16 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 	if(update)
 	{
 		MARL_SCOPED_EVENT("update");
-		vertexState = vertexProcessor.update(context);
-		setupState = setupProcessor.update(context);
-		pixelState = pixelProcessor.update(context);
+		vertexState = VertexProcessor::update(context);
+		setupState = SetupProcessor::update(context);
+		pixelState = PixelProcessor::update(context);
 
-		vertexRoutine = vertexProcessor.routine(vertexState, context->pipelineLayout, context->vertexShader, context->descriptorSets);
-		setupRoutine = setupProcessor.routine(setupState);
-		pixelRoutine = pixelProcessor.routine(pixelState, context->pipelineLayout, context->pixelShader, context->descriptorSets);
+		vertexRoutine = VertexProcessor::routine(vertexState, context->pipelineLayout, context->vertexShader, context->descriptorSets);
+		setupRoutine = SetupProcessor::routine(setupState);
+		pixelRoutine = PixelProcessor::routine(pixelState, context->pipelineLayout, context->pixelShader, context->descriptorSets);
 	}
 
-	draw->containsImageWrite = (context->vertexShader && context->vertexShader->containsImageWrite()) ||
-	                           (context->pixelShader && context->pixelShader->containsImageWrite());
-
 	DrawCall::SetupFunction setupPrimitives = nullptr;
-	int ms = context->sampleCount;
 	unsigned int numPrimitivesPerBatch = MaxBatchSize / ms;
 
 	if(context->isDrawTriangle(false))
@@ -245,7 +257,6 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 	}
 
 	DrawData *data = draw->data;
-	draw->device = device;
 	draw->occlusionQuery = occlusionQuery;
 	draw->batchDataPool = &batchDataPool;
 	draw->numPrimitives = count;
@@ -255,8 +266,6 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 	draw->provokingVertexMode = context->provokingVertexMode;
 	draw->indexType = indexType;
 	draw->lineRasterizationMode = context->lineRasterizationMode;
-	draw->descriptorSetObjects = context->descriptorSetObjects;
-	draw->pipelineLayout = context->pipelineLayout;
 
 	draw->vertexRoutine = vertexRoutine;
 	draw->setupRoutine = setupRoutine;
@@ -287,7 +296,7 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 
 	data->lineWidth = context->lineWidth;
 
-	data->factor = pixelProcessor.factor;
+	data->factor = factor;
 
 	if(pixelState.alphaToCoverage)
 	{
@@ -302,10 +311,6 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 		{
 			data->a2c0 = float4(0.25f);
 			data->a2c1 = float4(0.75f);
-		}
-		else if(ms == 1)
-		{
-			data->a2c0 = float4(0.5f);
 		}
 		else
 			ASSERT(false);
@@ -330,6 +335,11 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 		float Z = F - N;
 		constexpr float subPixF = vk::SUBPIXEL_PRECISION_FACTOR;
 
+		if(context->isDrawTriangle(false))
+		{
+			N += context->depthBias;
+		}
+
 		data->WxF = float4(W * subPixF);
 		data->HxF = float4(H * subPixF);
 		data->X0xF = float4(X0 * subPixF - subPixF / 2);
@@ -337,27 +347,9 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 		data->halfPixelX = float4(0.5f / W);
 		data->halfPixelY = float4(0.5f / H);
 		data->viewportHeight = abs(viewport.height);
+		data->slopeDepthBias = context->slopeDepthBias;
 		data->depthRange = Z;
 		data->depthNear = N;
-		data->constantDepthBias = context->constantDepthBias;
-		data->slopeDepthBias = context->slopeDepthBias;
-		data->depthBiasClamp = context->depthBiasClamp;
-
-		if(context->depthBuffer)
-		{
-			switch(context->depthBuffer->getFormat(VK_IMAGE_ASPECT_DEPTH_BIT))
-			{
-				case VK_FORMAT_D16_UNORM:
-					data->minimumResolvableDepthDifference = 1.0f / 0xFFFF;
-					break;
-				case VK_FORMAT_D32_SFLOAT:
-					// The minimum resolvable depth difference is determined per-polygon for floating-point depth
-					// buffers. DrawData::minimumResolvableDepthDifference is unused.
-					break;
-				default:
-					UNSUPPORTED("Depth format: %d", int(context->depthBuffer->getFormat(VK_IMAGE_ASPECT_DEPTH_BIT)));
-			}
-		}
 	}
 
 	// Target
@@ -407,8 +399,6 @@ void Renderer::draw(const sw::Context *context, VkIndexType indexType, unsigned 
 
 	draw->events = events;
 
-	vk::DescriptorSet::PrepareForSampling(draw->descriptorSetObjects, draw->pipelineLayout, device);
-
 	DrawCall::run(draw, &drawTickets, clusterQueues);
 }
 
@@ -445,19 +435,6 @@ void DrawCall::teardown()
 	vertexRoutine = {};
 	setupRoutine = {};
 	pixelRoutine = {};
-
-	for(auto *rt : renderTarget)
-	{
-		if(rt)
-		{
-			rt->contentsChanged();
-		}
-	}
-
-	if(containsImageWrite)
-	{
-		vk::DescriptorSet::ContentsChanged(descriptorSetObjects, pipelineLayout, device);
-	}
 }
 
 void DrawCall::run(const marl::Loan<DrawCall> &draw, marl::Ticket::Queue *tickets, marl::Ticket::Queue clusterQueues[MaxClusterCount])
@@ -578,7 +555,7 @@ void Renderer::synchronize()
 	MARL_SCOPED_EVENT("synchronize");
 	auto ticket = drawTickets.take();
 	ticket.wait();
-	device->updateSamplingRoutineSnapshotCache();
+	device->updateSamplingRoutineConstCache();
 	ticket.done();
 }
 
@@ -1169,8 +1146,13 @@ bool DrawCall::setupPoint(Primitive &primitive, Triangle &triangle, const DrawCa
 			}
 		}
 
-		primitive.pointSizeInv = 1.0f / pSize;
+		triangle.v1 = triangle.v0;
+		triangle.v2 = triangle.v0;
 
+		constexpr float subPixF = vk::SUBPIXEL_PRECISION_FACTOR;
+
+		triangle.v1.projected.x += iround(subPixF * 0.5f * pSize);
+		triangle.v2.projected.y -= iround(subPixF * 0.5f * pSize) * (data.HxF[0] > 0.0f ? 1 : -1);  // Both Direct3D and OpenGL expect (0, 0) in the top-left corner
 		return draw.setupRoutine(&primitive, &triangle, &polygon, &data);
 	}
 
@@ -1216,11 +1198,6 @@ void Renderer::setViewport(const VkViewport &viewport)
 void Renderer::setScissor(const VkRect2D &scissor)
 {
 	this->scissor = scissor;
-}
-
-void Renderer::setBlendConstant(const float4 &blendConstant)
-{
-	pixelProcessor.setBlendConstant(blendConstant);
 }
 
 }  // namespace sw
