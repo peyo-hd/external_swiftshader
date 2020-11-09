@@ -25,9 +25,8 @@
 #include <assert.h>
 #include <chrono>
 #include <condition_variable>
+#include <mutex>
 #include <queue>
-
-#include "marl/mutex.h"
 
 namespace sw {
 
@@ -65,7 +64,7 @@ public:
 	// add() begins a new task.
 	void add()
 	{
-		marl::lock lock(mutex);
+		std::unique_lock<std::mutex> lock(mutex);
 		++count_;
 	}
 
@@ -74,7 +73,7 @@ public:
 	// WaitGroup.
 	bool done()
 	{
-		marl::lock lock(mutex);
+		std::unique_lock<std::mutex> lock(mutex);
 		assert(count_ > 0);
 		--count_;
 		if(count_ == 0)
@@ -87,8 +86,8 @@ public:
 	// wait() blocks until all the tasks have been finished.
 	void wait()
 	{
-		marl::lock lock(mutex);
-		lock.wait(condition, [this]() REQUIRES(mutex) { return count_ == 0; });
+		std::unique_lock<std::mutex> lock(mutex);
+		condition.wait(lock, [this] { return count_ == 0; });
 	}
 
 	// wait() blocks until all the tasks have been finished or the timeout
@@ -97,8 +96,8 @@ public:
 	template<class CLOCK, class DURATION>
 	bool wait(const std::chrono::time_point<CLOCK, DURATION> &timeout)
 	{
-		marl::lock lock(mutex);
-		return condition.wait_until(lock, timeout, [this]() REQUIRES(mutex) { return count_ == 0; });
+		std::unique_lock<std::mutex> lock(mutex);
+		return condition.wait_until(lock, timeout, [this] { return count_ == 0; });
 	}
 
 	// count() returns the number of times add() has been called without a call
@@ -107,7 +106,7 @@ public:
 	// change after returning.
 	int32_t count()
 	{
-		marl::lock lock(mutex);
+		std::unique_lock<std::mutex> lock(mutex);
 		return count_;
 	}
 
@@ -116,8 +115,8 @@ public:
 	void finish() override { done(); }
 
 private:
-	marl::mutex mutex;
-	int32_t count_ GUARDED_BY(mutex) = 0;
+	int32_t count_ = 0;  // guarded by mutex
+	std::mutex mutex;
 	std::condition_variable condition;
 };
 
@@ -148,8 +147,8 @@ public:
 	size_t count();
 
 private:
-	marl::mutex mutex;
-	std::queue<T> queue GUARDED_BY(mutex);
+	std::queue<T> queue;
+	std::mutex mutex;
 	std::condition_variable added;
 };
 
@@ -160,9 +159,9 @@ Chan<T>::Chan()
 template<typename T>
 T Chan<T>::take()
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	// Wait for item to be added.
-	lock.wait(added, [this]() REQUIRES(mutex) { return queue.size() > 0; });
+	added.wait(lock, [this] { return queue.size() > 0; });
 	T out = queue.front();
 	queue.pop();
 	return out;
@@ -171,7 +170,7 @@ T Chan<T>::take()
 template<typename T>
 std::pair<T, bool> Chan<T>::tryTake()
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	if(queue.size() == 0)
 	{
 		return std::make_pair(T{}, false);
@@ -184,7 +183,7 @@ std::pair<T, bool> Chan<T>::tryTake()
 template<typename T>
 void Chan<T>::put(const T &item)
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	queue.push(item);
 	added.notify_one();
 }
@@ -192,7 +191,7 @@ void Chan<T>::put(const T &item)
 template<typename T>
 size_t Chan<T>::count()
 {
-	marl::lock lock(mutex);
+	std::unique_lock<std::mutex> lock(mutex);
 	return queue.size();
 }
 

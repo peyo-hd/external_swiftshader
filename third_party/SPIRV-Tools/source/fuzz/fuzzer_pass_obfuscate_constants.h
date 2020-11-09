@@ -28,7 +28,7 @@ namespace fuzz {
 class FuzzerPassObfuscateConstants : public FuzzerPass {
  public:
   FuzzerPassObfuscateConstants(
-      opt::IRContext* ir_context, TransformationContext* transformation_context,
+      opt::IRContext* ir_context, FactManager* fact_manager,
       FuzzerContext* fuzzer_context,
       protobufs::TransformationSequence* transformations);
 
@@ -99,11 +99,6 @@ class FuzzerPassObfuscateConstants : public FuzzerPass {
       uint32_t base_instruction_result_id,
       const std::map<SpvOp, uint32_t>& skipped_opcode_count,
       std::vector<protobufs::IdUseDescriptor>* constant_uses);
-
-  // Returns a vector of unique words that denote constants. Every such constant
-  // is used in |FactConstantUniform| and has type with id equal to |type_id|.
-  std::vector<std::vector<uint32_t>> GetConstantWordsFromUniformsForType(
-      uint32_t type_id);
 };
 
 }  // namespace fuzz

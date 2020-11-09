@@ -22,8 +22,7 @@
 #include <GLES2/gl2ext.h>
 
 #if defined(__ANDROID__) && !defined(ANDROID_NDK_BUILD)
-#include <system/graphics.h>
-#include <vndk/window.h>
+#include <system/window.h>
 #include "../../Common/GrallocAndroid.hpp"
 #endif
 
@@ -274,19 +273,14 @@ public:
 		  nativeBuffer(nativeBuffer)
 	{
 		nativeBuffer->common.incRef(&nativeBuffer->common);
-
-		GrallocModule::getInstance()->import(nativeBuffer->handle, &nativeBufferImportedHandle);
 	}
 
 private:
 	ANativeWindowBuffer *nativeBuffer;
-	buffer_handle_t nativeBufferImportedHandle;
 
 	~AndroidNativeImage() override
 	{
 		sync();   // Wait for any threads that use this image to finish.
-
-		GrallocModule::getInstance()->release(nativeBufferImportedHandle);
 
 		nativeBuffer->common.decRef(&nativeBuffer->common);
 	}
@@ -309,6 +303,13 @@ private:
 
 			// Lock the ANativeWindowBuffer and use its address.
 			data = lockNativeBuffer(GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN);
+
+			if(lock == sw::LOCK_UNLOCKED)
+			{
+				// We're never going to get a corresponding unlock, so unlock
+				// immediately. This keeps the gralloc reference counts sane.
+				unlockNativeBuffer();
+			}
 		}
 
 		return data;
@@ -346,14 +347,14 @@ private:
 	void *lockNativeBuffer(int usage)
 	{
 		void *buffer = nullptr;
-		GrallocModule::getInstance()->lock(nativeBufferImportedHandle, usage, 0, 0, nativeBuffer->width, nativeBuffer->height, &buffer);
+		GrallocModule::getInstance()->lock(nativeBuffer->handle, usage, 0, 0, nativeBuffer->width, nativeBuffer->height, &buffer);
 
 		return buffer;
 	}
 
 	void unlockNativeBuffer()
 	{
-		GrallocModule::getInstance()->unlock(nativeBufferImportedHandle);
+		GrallocModule::getInstance()->unlock(nativeBuffer->handle);
 	}
 
 	void release() override

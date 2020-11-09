@@ -46,25 +46,21 @@ TEST(TransformationAddDeadBlockTest, BasicTest) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Id 4 is already in use
   ASSERT_FALSE(TransformationAddDeadBlock(4, 5, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   // Id 7 is not a block
   ASSERT_FALSE(TransformationAddDeadBlock(100, 7, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 
   TransformationAddDeadBlock transformation(100, 5, true);
-  ASSERT_TRUE(
-      transformation.IsApplicable(context.get(), transformation_context));
-  transformation.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation.IsApplicable(context.get(), fact_manager));
+  transformation.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
 
-  ASSERT_TRUE(transformation_context.GetFactManager()->BlockIsDead(100));
+  ASSERT_TRUE(fact_manager.BlockIsDead(100));
 
   std::string after_transformation = R"(
                OpCapability Shader
@@ -123,12 +119,9 @@ TEST(TransformationAddDeadBlockTest, TargetBlockMustNotBeSelectionMerge) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   ASSERT_FALSE(TransformationAddDeadBlock(100, 9, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationAddDeadBlockTest, TargetBlockMustNotBeLoopMergeOrContinue) {
@@ -167,16 +160,13 @@ TEST(TransformationAddDeadBlockTest, TargetBlockMustNotBeLoopMergeOrContinue) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Bad because 9's successor is the loop continue target.
   ASSERT_FALSE(TransformationAddDeadBlock(100, 9, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
   // Bad because 10's successor is the loop merge.
   ASSERT_FALSE(TransformationAddDeadBlock(100, 10, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationAddDeadBlockTest, SourceBlockMustNotBeLoopHead) {
@@ -213,13 +203,10 @@ TEST(TransformationAddDeadBlockTest, SourceBlockMustNotBeLoopHead) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // Bad because 8 is a loop head.
   ASSERT_FALSE(TransformationAddDeadBlock(100, 8, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 TEST(TransformationAddDeadBlockTest, OpPhiInTarget) {
@@ -253,17 +240,13 @@ TEST(TransformationAddDeadBlockTest, OpPhiInTarget) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   TransformationAddDeadBlock transformation(100, 5, true);
-  ASSERT_TRUE(
-      transformation.IsApplicable(context.get(), transformation_context));
-  transformation.Apply(context.get(), &transformation_context);
+  ASSERT_TRUE(transformation.IsApplicable(context.get(), fact_manager));
+  transformation.Apply(context.get(), &fact_manager);
   ASSERT_TRUE(IsValid(env, context.get()));
 
-  ASSERT_TRUE(transformation_context.GetFactManager()->BlockIsDead(100));
+  ASSERT_TRUE(fact_manager.BlockIsDead(100));
 
   std::string after_transformation = R"(
                OpCapability Shader
@@ -326,14 +309,11 @@ TEST(TransformationAddDeadBlockTest, BackEdge) {
   ASSERT_TRUE(IsValid(env, context.get()));
 
   FactManager fact_manager;
-  spvtools::ValidatorOptions validator_options;
-  TransformationContext transformation_context(&fact_manager,
-                                               validator_options);
 
   // 9 is a back edge block, so it would not be OK to add a dead block here,
   // as then both 9 and the dead block would branch to the loop header, 8.
   ASSERT_FALSE(TransformationAddDeadBlock(100, 9, true)
-                   .IsApplicable(context.get(), transformation_context));
+                   .IsApplicable(context.get(), fact_manager));
 }
 
 }  // namespace

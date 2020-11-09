@@ -24,7 +24,7 @@ namespace fuzz {
 class FuzzerPassAddNoContractionDecorations : public FuzzerPass {
  public:
   FuzzerPassAddNoContractionDecorations(
-      opt::IRContext* ir_context, TransformationContext* transformation_context,
+      opt::IRContext* ir_context, FactManager* fact_manager,
       FuzzerContext* fuzzer_context,
       protobufs::TransformationSequence* transformations);
 

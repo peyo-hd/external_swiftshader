@@ -126,11 +126,13 @@ macro(spvtools_vendor_tables VENDOR_TABLE SHORT_NAME OPERAND_KIND_PREFIX)
 endmacro(spvtools_vendor_tables)
 
 macro(spvtools_extinst_lang_headers NAME GRAMMAR_FILE)
-  set(OUT_H ${spirv-tools_BINARY_DIR}/${NAME}.h)
+  set(OUTBASE ${spirv-tools_BINARY_DIR}/${NAME})
+  set(OUT_H ${OUTBASE}.h)
   add_custom_command(OUTPUT ${OUT_H}
     COMMAND ${PYTHON_EXECUTABLE} ${LANG_HEADER_PROCESSING_SCRIPT}
+      --extinst-name=${NAME}
       --extinst-grammar=${GRAMMAR_FILE}
-      --extinst-output-path=${OUT_H}
+      --extinst-output-base=${OUTBASE}
     DEPENDS ${LANG_HEADER_PROCESSING_SCRIPT} ${GRAMMAR_FILE}
     COMMENT "Generate language specific header for ${NAME}.")
   add_custom_target(spirv-tools-header-${NAME} DEPENDS ${OUT_H})

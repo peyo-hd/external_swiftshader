@@ -17,8 +17,7 @@
 
 #include "VkSurfaceKHR.hpp"
 #include "Vulkan/VkObject.hpp"
-
-#include <vulkan/vulkan_xcb.h>
+#include "vulkan/vulkan_xcb.h"
 #include <xcb/xcb.h>
 
 #include <unordered_map>

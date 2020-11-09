@@ -91,15 +91,18 @@ void *allocateRaw(size_t bytes, size_t alignment)
 
 size_t memoryPageSize()
 {
-	static int pageSize = [] {
+	static int pageSize = 0;
+
+	if(pageSize == 0)
+	{
 #if defined(_WIN32)
 		SYSTEM_INFO systemInfo;
 		GetSystemInfo(&systemInfo);
-		return systemInfo.dwPageSize;
+		pageSize = systemInfo.dwPageSize;
 #else
-		return sysconf(_SC_PAGESIZE);
+		pageSize = sysconf(_SC_PAGESIZE);
 #endif
-	}();
+	}
 
 	return pageSize;
 }

@@ -14,7 +14,7 @@
 
 #include "VkSurfaceKHR.hpp"
 
-#include "Vulkan/VkDestroy.hpp"
+#include "Vulkan/VkDestroy.h"
 
 #include <algorithm>
 

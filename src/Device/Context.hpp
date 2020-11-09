@@ -19,7 +19,7 @@
 #include "Memset.hpp"
 #include "Stream.hpp"
 #include "System/Types.hpp"
-#include "Vulkan/VkConfig.hpp"
+#include "Vulkan/VkConfig.h"
 #include "Vulkan/VkDescriptorSet.hpp"
 
 namespace vk {
@@ -73,7 +73,9 @@ struct BlendState : Memset<BlendState>
 class Context
 {
 public:
-	Context() = default;
+	Context();
+
+	void init();
 
 	bool isDrawPoint(bool polygonModeAware) const;
 	bool isDrawLine(bool polygonModeAware) const;
@@ -83,9 +85,10 @@ public:
 	bool depthBufferActive() const;
 	bool stencilActive() const;
 
+	bool allTargetsColorClamp() const;
+
 	void setBlendState(int index, BlendState state);
 	BlendState getBlendState(int index) const;
-	bool isColorClamped(int index) const;
 
 	VkPrimitiveTopology topology;
 	VkProvokingVertexModeEXT provokingVertexMode;
@@ -100,15 +103,12 @@ public:
 	VkPolygonMode polygonMode;
 	VkLineRasterizationModeEXT lineRasterizationMode;
 
-	float constantDepthBias;
+	float depthBias;
 	float slopeDepthBias;
-	float depthBiasClamp;
-	bool depthRangeUnrestricted;
 
 	VkFormat renderTargetInternalFormat(int index) const;
 	int colorWriteActive(int index) const;
 
-	vk::DescriptorSet::Array descriptorSetObjects = {};
 	vk::DescriptorSet::Bindings descriptorSets = {};
 	vk::DescriptorSet::DynamicOffsets descriptorDynamicOffsets = {};
 	Stream input[MAX_INTERFACE_COMPONENTS / 4];
