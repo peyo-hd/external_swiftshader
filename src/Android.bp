@@ -41,6 +41,7 @@ cc_defaults {
         "-Wno-implicit-fallthrough",
         "-Wno-unused-parameter",
         "-Wno-unused-local-typedef",
+        "-Wno-unused-command-line-argument",
     ],
 
     cppflags: [
